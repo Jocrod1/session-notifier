@@ -1,0 +1,7 @@
+{
+  "type": "session.idle",
+  "properties": {
+    "sessionID": "ses_fixture_opencode_1"
+  },
+  "directory": "/work/example-project"
+}

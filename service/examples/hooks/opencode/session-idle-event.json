@@ -1,0 +1,7 @@
+{
+  "type": "session.idle",
+  "properties": {
+    "sessionID": "ses_a1b2c3"
+  },
+  "directory": "/home/user/projects/my-app"
+}

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "agentStop": [
+      {
+        "type": "command",
+        "bash": "npx --prefix /path/to/session-notifier/service tsx /path/to/session-notifier/service/src/hooks/cli.ts --source=github-copilot",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}

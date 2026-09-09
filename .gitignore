@@ -1,0 +1,16 @@
+node_modules/
+
+# Service runtime state
+service/session-notifier-state.json
+service/*.tmp
+
+# Android/Gradle local files
+app/android/.gradle/
+app/android/build/
+app/android/app/build/
+app/android/local.properties
+app/android/.idea/
+*.iml
+
+# Local editor and OS files
+.DS_Store

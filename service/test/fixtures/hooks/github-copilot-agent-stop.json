@@ -1,0 +1,8 @@
+{
+  "sessionId": "copilot-fixture-1",
+  "timestamp": 1788433200000,
+  "cwd": "/work/example-project",
+  "transcriptPath": "/tmp/example-transcript.jsonl",
+  "stopReason": "end_turn",
+  "stop_hook_active": false
+}
