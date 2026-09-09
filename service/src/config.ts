@@ -1,6 +1,7 @@
 import type { SourceId } from './domain.js';
 
 const SOURCE_IDS: SourceId[] = ['claude', 'codex', 'koda', 'local-llm', 'opencode', 'github-copilot', 'docker-claude'];
+const DEFAULT_SOURCES: SourceId[] = ['claude', 'codex', 'koda', 'local-llm', 'opencode', 'github-copilot'];
 
 export interface Config {
   sources: SourceId[];
@@ -10,7 +11,7 @@ export interface Config {
 }
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Config {
-  const sources = (environment.SESSION_NOTIFIER_SOURCES ?? SOURCE_IDS.join(','))
+  const sources = (environment.SESSION_NOTIFIER_SOURCES ?? DEFAULT_SOURCES.join(','))
     .split(',')
     .map((source) => source.trim())
     .filter(Boolean);

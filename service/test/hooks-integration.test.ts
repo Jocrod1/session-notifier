@@ -87,6 +87,25 @@ describe('hook ingestion integration', () => {
     }]);
   });
 
+  it('continues watching when the inbox does not exist at service startup', async () => {
+    const events: SessionEvent[] = [];
+    const source = new HookInboxSource(inboxPath, async (event) => {
+      events.push(event);
+    });
+    source.start();
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 150));
+
+    await appendHook({ source: 'opencode', payload: openCodePayload({ properties: { sessionID: 'ses_created_later' } }) }, inboxPath);
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 1_500));
+    await source.stop();
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      type: 'work-finished',
+      session: { source: 'opencode', id: 'ses_created_later' },
+    });
+  });
+
   it('ingests a valid GitHub Copilot agentStop payload end-to-end into a work-finished event', async () => {
     await appendHook({ source: 'github-copilot', payload: copilotPayload() }, inboxPath);
     const events = await runInboxOnce();

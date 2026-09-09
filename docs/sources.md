@@ -14,6 +14,12 @@
 
 ## Common Parsing Rules
 
+The service has two input mechanisms: passive transcript listeners for Claude,
+Codex, Koda, and local LLM sessions, plus explicit harness hooks for OpenCode
+and GitHub Copilot. All source adapters converge on the same normalized domain
+events and notification pipeline; hooks do not implement a separate
+notification system.
+
 File-backed adapters parse newline-delimited JSON defensively. Invalid JSON records are ignored rather than crashing the process. The incremental tailer emits only complete newline-terminated records; a record being written remains buffered until its newline arrives. If a file shrinks, it is treated as truncated and tailing restarts from byte zero.
 
 A user prompt must be non-empty and avoid obvious synthetic markers. The shared baseline rejects text beginning with `<`, text beginning with `[Request interrupted`, and text containing `<system-reminder>`. Prompt text is trimmed and limited to 240 characters.
@@ -76,11 +82,19 @@ Each direct child JSONL file with a UUID filename becomes a session. User messag
 
 ## OpenCode hook
 
-OpenCode plugins expose the `session.idle` event. The plugin payload provides `properties.sessionID`; the plugin context `directory` supplies the session location. Forward `{ ...event, directory }` to `src/hooks/cli.ts --source=opencode`.
+OpenCode plugins in `.opencode/plugins/` (or the global plugin directory)
+expose the `session.idle` event through the plugin `event` hook. The event
+payload provides `properties.sessionID`; the plugin context `directory`
+supplies the session location. Forward `{ ...event, directory }` to
+`src/hooks/cli.ts --source=opencode`.
 
 ## GitHub Copilot hook
 
-GitHub Copilot CLI's `agentStop` command hook provides `sessionId`, epoch-millisecond `timestamp`, `cwd`, and `stopReason: "end_turn"`. Forward its stdin to `src/hooks/cli.ts --source=github-copilot`.
+GitHub Copilot CLI's camelCase `agentStop` command hook provides `sessionId`,
+epoch-millisecond `timestamp`, `cwd`, `transcriptPath`, and
+`stopReason: "end_turn"`. Repository hooks live in `.github/hooks/*.json`;
+user hooks live in `~/.copilot/hooks/*.json` (or `$COPILOT_HOME/hooks`).
+Forward its stdin to `src/hooks/cli.ts --source=github-copilot`.
 
 Both hook adapters emit the normalized `work-finished` event and preserve `SessionRef.source`, `id`, and `location`. They do not replace transcript listeners.
 

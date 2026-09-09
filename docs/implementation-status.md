@@ -29,7 +29,7 @@ The service contains none of the following concepts from Age of Agents or the co
 ## Current Constraints
 
 - Console is the sole notification adapter. The adapter boundary is ready, but no remote or desktop transport is registered.
-- The source default includes `opencode` and `docker-claude`, but the entrypoint reports them as not implemented. Set `SESSION_NOTIFIER_SOURCES` to supported values in production-like use.
+- The source default includes the implemented OpenCode and GitHub Copilot hook inputs. `docker-claude` remains recognized but is not enabled by default because its collector is not implemented.
 - File roots missing at startup are disabled until the service is restarted.
 - Existing session history is intentionally not replayed at startup.
 - Persistence contains delivered notification keys only, not active-session state. A restart cannot resume a quiet period already in progress.

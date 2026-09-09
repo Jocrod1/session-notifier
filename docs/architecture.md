@@ -8,6 +8,24 @@ The service converts source-specific local session records into neutral lifecycl
 Agent storage or harness hook -> event source -> normalized fact/event -> lifecycle tracker -> notifier -> adapter
 ```
 
+Session Notifier currently has two input mechanisms feeding that same pipeline:
+
+```text
+Passive listeners
+    ├── Claude
+    ├── Codex
+    ├── Koda
+    └── local LLM
+
+Explicit hooks
+    ├── OpenCode
+    └── GitHub Copilot
+```
+
+The distinction is only how source-specific input enters the service. Both
+mechanisms produce source-agnostic domain events before lifecycle and
+notification handling.
+
 Each layer has one job. Source adapters understand record formats and locations. The lifecycle tracker understands session state. The notifier enforces delivery idempotency. Notification adapters decide how a user is informed.
 
 Transcript listeners remain passive event sources. OpenCode plugins and GitHub Copilot command hooks are active event sources that currently normalize their completion callbacks to `work-finished`. The lifecycle tracker deliberately retains the existing `ended` signal with `reason: "completed"` so explicit completion and transcript completion share notification behavior.

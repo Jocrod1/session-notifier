@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { watch, type FSWatcher } from 'chokidar';
 import type { EventSource, EventSink } from '../sources/types.js';
@@ -13,7 +12,6 @@ export class HookInboxSource implements EventSource {
   constructor(private readonly path: string, private readonly onEvent: EventSink) {}
 
   start(): void {
-    if (!existsSync(this.path)) return;
     this.watcher = watch(this.path, { ignoreInitial: false, usePolling: true, interval: 1_000 });
     this.watcher.on('add', () => this.enqueue());
     this.watcher.on('change', () => this.enqueue());

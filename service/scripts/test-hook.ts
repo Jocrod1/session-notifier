@@ -106,6 +106,7 @@ async function main(): Promise<void> {
     process.exitCode = 1;
     return;
   }
+  console.log(`Hook accepted: ${source}`);
 
   const timeout = new Promise<void>((_, reject) => {
     setTimeout(() => reject(new Error('Timed out waiting for the hook inbox watcher to observe the event.')), 10_000);

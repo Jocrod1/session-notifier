@@ -12,7 +12,8 @@ OpenCode currently exposes to plugins; it is not a dedicated
 ## How the hook is configured
 
 OpenCode plugins are TypeScript/JavaScript modules placed in a
-project's `.opencode/plugin/` directory (or a global plugin directory).
+project's `.opencode/plugins/` directory (or the global
+`~/.config/opencode/plugins/` directory).
 A plugin factory function receives a context object (including `$` for
 shell execution and `directory` for the current project directory) and
 returns hook implementations, including an `event` hook that receives
