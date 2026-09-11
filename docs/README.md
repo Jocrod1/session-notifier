@@ -10,6 +10,7 @@ It was derived from the input-detection heuristics in the sibling `context-recor
 - [Operations](operations.md): installation, commands, environment configuration, output, state, and troubleshooting.
 - [Sources](sources.md): supported agent sources, transcript heuristics, source paths, and current limitations.
 - [Implementation Status](implementation-status.md): delivered scope, known constraints, and the next implementation work.
+- [PC Pairing](pairing.md): pairing command, deep-link, HTTP protocol, and device persistence.
 
 ## Quick Start
 
