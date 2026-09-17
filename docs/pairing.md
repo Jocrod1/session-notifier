@@ -21,6 +21,8 @@ The Android client should submit the following JSON to `POST /pair` at the host 
 }
 ```
 
+For now, the Android client accepts the URI through a text field on its pairing screen. Paste the complete URI and select **Pair**. QR scanning, deep-link handling, and Android App Links are not implemented.
+
 The request is validated, including the short-lived token (five minutes by default), before it is shown to the PC user. A device is not trusted or persisted until the user explicitly accepts it. An accepted response contains `accepted`, a persistent device `deviceId`, and a generated device `credential`; a rejected request receives HTTP 403 and does not create a device.
 
 Paired devices are stored as JSON in `session-notifier-devices.json` by default. Override this with `SESSION_NOTIFIER_DEVICES_PATH`. Override the token lifetime with `SESSION_NOTIFIER_PAIRING_TTL_MS`. The temporary receiver closes after success, expiration, cancellation, or normal termination.

@@ -1,8 +1,10 @@
 package com.aoa.sessionnotifier
 
 import org.json.JSONObject
+import java.net.ConnectException
 import java.io.IOException
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
 
 sealed interface PairingResult {
@@ -16,7 +18,7 @@ class PairingClient {
         return try {
             connection.requestMethod = "POST"
             connection.connectTimeout = 10_000
-            connection.readTimeout = 10_000
+            connection.readTimeout = 120_000
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
             connection.setRequestProperty("Accept", "application/json")
@@ -43,6 +45,10 @@ class PairingClient {
                     PairingResult.Success(deviceId, credential)
                 }
             }
+        } catch (_: SocketTimeoutException) {
+            PairingResult.Failure("The PC did not respond before the request timed out.")
+        } catch (_: ConnectException) {
+            PairingResult.Failure("Connection refused. Check that the PC pairing command is still running.")
         } catch (error: IOException) {
             PairingResult.Failure("Unable to connect to the PC: ${error.message ?: "network error"}")
         } finally {

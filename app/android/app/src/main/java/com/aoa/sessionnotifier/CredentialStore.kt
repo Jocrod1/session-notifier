@@ -19,9 +19,10 @@ class CredentialStore(context: Context) {
         }
         val encrypted = cipher.doFinal(JSONObject().put("deviceId", deviceId).put("credential", credential)
             .toString().toByteArray(StandardCharsets.UTF_8))
-        preferences.edit()
+        val saved = preferences.edit()
             .putString("credential", Base64.encodeToString(cipher.iv + encrypted, Base64.NO_WRAP))
-            .apply()
+            .commit()
+        check(saved) { "Unable to persist the paired device credential" }
     }
 
     private fun key(): SecretKey {
