@@ -8,12 +8,12 @@ class PairingLinkTest {
     @Test
     fun parsesDocumentedPairingUri() {
         val link = PairingLink.parse(
-            "session-notifier://pair?host=192.168.1.133&port=49847&token=hIdYyoVB0YnKVNCUYCssia56QrJ8_rTl",
+            "session-notifier://pair?host=192.168.1.133&port=49847&token=test-token",
         )
 
         assertEquals("192.168.1.133", link.host)
         assertEquals(49847, link.port)
-        assertEquals("hIdYyoVB0YnKVNCUYCssia56QrJ8_rTl", link.token)
+        assertEquals("test-token", link.token)
     }
 
     @Test
