@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Session Notifier</string>
+    <string name="ready_to_pair">Ready to pair with a PC</string>
+    <string name="invalid_pairing_link">This pairing link is invalid or incomplete.</string>
+    <string name="pairing_request">Pairing request from %1$s:%2$d</string>
+    <string name="accept_pairing">Accept pairing</string>
+    <string name="connecting">Connecting to the PC…</string>
+    <string name="pairing_complete">Pairing complete. This device is securely paired.</string>
+    <string name="pairing_failed">Pairing failed: %1$s</string>
+    <string name="credential_save_failed">Pairing succeeded, but the credential could not be saved: %1$s</string>
+    <string name="try_again">Try again</string>
 </resources>
