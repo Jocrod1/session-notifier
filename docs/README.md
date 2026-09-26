@@ -1,6 +1,6 @@
 # Session Notifier Documentation
 
-`session-notifier` contains a local TypeScript service and a separate native Android client boundary. The service observes local AI-agent session transcripts and emits notifications when work starts, when a turn finishes or aborts, and when a session later becomes inactive. The Android project is currently only a scaffold.
+`session-notifier` contains a local TypeScript service and a separate native Android client. The service observes local AI-agent session transcripts and emits notifications when work starts, when a turn finishes or aborts, and when a session later becomes inactive. The Android client currently supports the manual PC pairing flow; notification delivery is not implemented.
 
 It was derived from the input-detection heuristics in the sibling `context-recorder` project, but it does not include any Age of Agents UI, gamification, mission, hero, token, or world model.
 
@@ -10,6 +10,7 @@ It was derived from the input-detection heuristics in the sibling `context-recor
 - [Operations](operations.md): installation, commands, environment configuration, output, state, and troubleshooting.
 - [Sources](sources.md): supported agent sources, transcript heuristics, source paths, and current limitations.
 - [Implementation Status](implementation-status.md): delivered scope, known constraints, and the next implementation work.
+- [PC Pairing](pairing.md): pairing command, deep-link, HTTP protocol, and device persistence.
 
 ## Quick Start
 

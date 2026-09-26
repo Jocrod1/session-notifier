@@ -3,6 +3,7 @@ node_modules/
 # Service runtime state
 service/session-notifier-state.json
 service/session-notifier-hooks.jsonl
+service/session-notifier-devices.json
 service/*.tmp
 
 # Android/Gradle local files

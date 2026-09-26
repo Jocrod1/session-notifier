@@ -10,8 +10,13 @@ import { StateStore } from './state-store.js';
 import type { Fact } from './transcript/facts.js';
 import { SourceWatcher } from './watcher.js';
 import { HookInboxSource } from './hooks/source.js';
+import { runPairCommand } from './pairing/cli.js';
 
 const config = loadConfig();
+if (process.argv[2] === 'pair') {
+  await runPairCommand(config);
+  process.exit(0);
+}
 const stateStore = new StateStore(resolve(config.statePath));
 await stateStore.load();
 
