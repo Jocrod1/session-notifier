@@ -8,7 +8,7 @@ import java.net.SocketTimeoutException
 import java.net.URL
 
 sealed interface PairingResult {
-    data class Success(val deviceId: String, val credential: String) : PairingResult
+    data class Success(val deviceId: String, val credential: String, val connectionPort: Int) : PairingResult
     data class Failure(val message: String) : PairingResult
 }
 
@@ -39,10 +39,12 @@ class PairingClient {
             } else {
                 val deviceId = json?.optString("deviceId").orEmpty()
                 val credential = json?.optString("credential").orEmpty()
-                if (json == null || !json.optBoolean("accepted", false) || deviceId.isBlank() || credential.isBlank()) {
+                val connectionPort = json?.optInt("connectionPort", 0) ?: 0
+                if (json == null || !json.optBoolean("accepted", false) || deviceId.isBlank() ||
+                    credential.isBlank() || connectionPort !in 1..65_535) {
                     PairingResult.Failure("The PC returned an invalid pairing response.")
                 } else {
-                    PairingResult.Success(deviceId, credential)
+                    PairingResult.Success(deviceId, credential, connectionPort)
                 }
             }
         } catch (_: SocketTimeoutException) {

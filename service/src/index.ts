@@ -11,6 +11,8 @@ import type { Fact } from './transcript/facts.js';
 import { SourceWatcher } from './watcher.js';
 import { HookInboxSource } from './hooks/source.js';
 import { runPairCommand } from './pairing/cli.js';
+import { JsonDeviceRegistry } from './pairing/device-registry.js';
+import { DeviceConnections } from './connection/device-connections.js';
 
 const config = loadConfig();
 if (process.argv[2] === 'pair') {
@@ -19,6 +21,12 @@ if (process.argv[2] === 'pair') {
 }
 const stateStore = new StateStore(resolve(config.statePath));
 await stateStore.load();
+
+const deviceConnections = new DeviceConnections(
+  new JsonDeviceRegistry(resolve(config.devicesPath)),
+  config.connectionPort,
+);
+await deviceConnections.start();
 
 const notifier = new Notifier(new ConsoleNotificationAdapter(), stateStore);
 const lifecycle = new SessionLifecycleTracker({ inactiveAfterMs: config.inactiveAfterMs });
@@ -56,12 +64,14 @@ for (const source of config.sources.filter((source) => source === 'docker-claude
 const interval = setInterval(() => void notifier.deliver(lifecycle.tick(Date.now())), 15_000);
 console.log(`[session-notifier] sources: ${config.sources.join(', ')}`);
 console.log(`[session-notifier] inactive after: ${config.inactiveAfterMs}ms`);
+console.log(`[session-notifier] device connections listening on 0.0.0.0:${deviceConnections.listeningPort}`);
 
 let stopping = false;
 async function stop(): Promise<void> {
   if (stopping) return;
   stopping = true;
   clearInterval(interval);
+  await deviceConnections.close();
   await Promise.all(watchers.map((watcher) => watcher.stop()));
   await hookSource.stop();
   await notifier.close();

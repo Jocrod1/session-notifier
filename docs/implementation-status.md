@@ -17,6 +17,12 @@ The initial service implementation is complete for the following scope:
 - File-backed source adapters for Claude, Codex, Koda, and local LLM.
 - Windows-safe path handling through Node path APIs.
 - SIGINT/SIGTERM watcher shutdown.
+- Authenticated version 1 WebSocket connections for paired Android devices,
+  with one active socket per device, nonce ping/pong keepalive, and graceful
+  service shutdown.
+- Android Keystore-backed persistence of the paired identity and PC endpoint,
+  plus foreground-lifecycle connection ownership and bounded reconnect backoff.
+- PC connection/protocol tests and deterministic Android retry-backoff tests.
 
 ## Intentional Exclusions
 
@@ -28,7 +34,9 @@ The service contains none of the following concepts from Age of Agents or the co
 
 ## Current Constraints
 
-- Console is the sole notification adapter. The adapter boundary is ready, but no remote or desktop transport is registered.
+- Console is the sole notification adapter. The adapter boundary is ready, but no remote or desktop transport is registered. Session notifications are not sent to Android.
+- The Android connection runs only while the app is foregrounded. Background delivery would require a separately designed foreground-service lifecycle and is not implemented.
+- The PC endpoint is persisted as a routing hint. A changed PC LAN address requires updating that hint through the pairing flow; existing Android installs from before endpoint persistence must pair once after upgrading.
 - The source default includes the implemented OpenCode and GitHub Copilot hook inputs. `docker-claude` remains recognized but is not enabled by default because its collector is not implemented.
 - File roots missing at startup are disabled until the service is restarted.
 - Existing session history is intentionally not replayed at startup.
