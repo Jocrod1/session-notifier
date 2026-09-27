@@ -11,4 +11,11 @@
     <string name="pairing_complete">Pairing complete. This device is securely paired.</string>
     <string name="pairing_failed">Pairing failed: %1$s</string>
     <string name="credential_save_failed">Pairing succeeded, but the device credential could not be saved securely.</string>
+    <string name="credential_load_failed">Unable to load the saved pairing: %1$s</string>
+    <string name="pairing_endpoint_missing">This saved pairing predates persistent connections. Pair again once to save the PC endpoint.</string>
+    <string name="connection_connecting">Connecting to the paired computer…</string>
+    <string name="connection_connected">Connected to %1$s</string>
+    <string name="connection_reconnecting">Connection lost. Reconnecting…</string>
+    <string name="connection_authentication_failed">The PC no longer recognizes this pairing. Pair again to reconnect.</string>
+    <string name="connection_disconnected">Disconnected from the paired computer.</string>
 </resources>
