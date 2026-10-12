@@ -118,6 +118,36 @@ interface NotificationAdapter {
 
 Appropriate future adapters include webhook, Windows desktop notifications, Slack, Discord, and email. They should retain the existing signal payload and leave source/lifecycle behavior unchanged.
 
+## Paired Device Connections
+
+Pairing, connectivity, and messaging are separate concerns. Pairing writes a
+stable device ID and random credential to the JSON device registry. The
+service's WebSocket connection manager authenticates those credentials and
+tracks currently connected devices; temporary disconnects never remove or
+modify the pairing. `DeviceMessaging` exposes connection status, connected
+device listing, and typed outbound messages without exposing WebSocket
+details to session/event handling.
+
+The service listens on the configured local-network connection port (default
+`43124`) at `/connect`. Protocol version 1 uses a credential-bearing `hello`
+from Android, a `hello` acknowledgement from the PC, and nonce-based `ping`
+and `pong` messages. The service authenticates each new socket against the
+current JSON registry; it permits one active connection per device. This
+transport is independent of `Notifier`: session notifications are not sent
+over the connection yet.
+
+Android encrypts the device ID, credential, device name, and PC endpoint
+hint using Android Keystore-backed AES-GCM storage. The endpoint is connection
+routing data, not device identity; the device ID and credential remain stable
+if the Android device changes its own network address. The app owns the
+connection only while its activity is in the foreground, closes it when the
+activity stops, and reconnects when it returns or the process restarts.
+Reconnect delays grow from one second to a 30-second maximum and reset after
+authentication succeeds. No foreground service is used because background
+delivery is not in this milestone. A changed PC LAN address requires updating
+the endpoint through the pairing screen; this does not change the PC's device
+identity or delete its pairing.
+
 ## State
 
 `StateStore` persists successful notification keys in JSON. It writes a temporary file and renames it over the configured state path, reducing the risk of a partially written state file. A missing state file is normal. A malformed/unreadable file is logged and ignored, which may allow previously delivered notifications to repeat.
@@ -126,6 +156,6 @@ The implementation currently persists delivered keys only. In-memory lifecycle t
 
 ## Runtime Composition
 
-[service/src/index.ts](../service/src/index.ts) loads configuration, restores delivery state, creates the lifecycle tracker and console adapter, starts file watchers, and schedules the 15-second inactivity tick. SIGINT and SIGTERM stop file watchers and close the notification adapter.
+[service/src/index.ts](../service/src/index.ts) loads configuration, restores delivery state, starts the paired-device WebSocket listener, creates the lifecycle tracker and console adapter, starts file watchers, and schedules the 15-second inactivity tick. SIGINT and SIGTERM close device connections, stop file watchers, and close the notification adapter.
 
 The generic [service/src/watcher.ts](../service/src/watcher.ts) serializes file events, tails complete JSONL lines only, and forwards facts to the composition root. It ignores historical file contents discovered at startup by registering a tail at the current end of each file. Only new appended records produce notifications.

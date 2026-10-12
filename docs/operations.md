@@ -32,6 +32,9 @@ Configuration is environment-only. No config file is read.
 | `SESSION_NOTIFIER_IDLE_AFTER_MS` | `300000`                                             | Positive integer inactivity threshold in milliseconds.                                                     |
 | `SESSION_NOTIFIER_STATE_PATH`    | `./session-notifier-state.json`                      | Path for persisted delivered-notification keys. Relative paths resolve from the process working directory. |
 | `SESSION_NOTIFIER_HOOK_INBOX`    | `./session-notifier-hooks.jsonl`                    | Local JSONL inbox used by OpenCode and GitHub Copilot hook commands. |
+| `SESSION_NOTIFIER_DEVICES_PATH`  | `./session-notifier-devices.json`                  | JSON registry of trusted Android devices and credentials. |
+| `SESSION_NOTIFIER_PAIRING_TTL_MS` | `300000`                                             | Lifetime of a temporary pairing token in milliseconds. |
+| `SESSION_NOTIFIER_CONNECTION_PORT` | `43124`                                            | Stable local TCP port for the authenticated device WebSocket endpoint. |
 | `LOCAL_LLM_SESSIONS_DIR`         | `~/.age-of-agents/local-llm/sessions`                | Override root for local-LLM JSONL session files.                                                           |
 
 Examples:
@@ -161,7 +164,21 @@ A corrupted state file is deliberately ignored after a stderr warning, keeping t
 
 ## Shutdown
 
-Use Ctrl+C or send SIGTERM. The service clears its inactivity interval, closes active file watchers, and closes the notification adapter. The console adapter has no buffered work. Future remote adapters must flush or cancel their work in `close()`.
+Use Ctrl+C or send SIGTERM. The service clears its inactivity interval,
+gracefully closes active device WebSockets, stops file watchers, and closes
+the notification adapter. The console adapter has no buffered work. Future
+remote adapters must flush or cancel their work in `close()`.
+
+## Paired Android connection
+
+The service listens for paired Android clients on
+`SESSION_NOTIFIER_CONNECTION_PORT` at `/connect`. See
+[PC Pairing](pairing.md) for the version 1 hello/ping/pong protocol and a
+manual reconnect test. The Android connection runs only while the app is in
+the foreground; Android lifecycle changes stop and resume it, and transient
+network failures use a one-second to 30-second exponential reconnect delay.
+No Android foreground service is required until background delivery is a
+product requirement.
 
 ## Troubleshooting
 

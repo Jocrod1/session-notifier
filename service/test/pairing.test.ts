@@ -1,6 +1,6 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { JsonDeviceRegistry } from '../src/pairing/device-registry.js';
 import { createPairingLink } from '../src/pairing/qr.js';
@@ -35,6 +35,28 @@ describe('pairing tokens and protocol', () => {
     expect(() => parsePairingPayload({ token: 'x', device: { name: '', platform: 'android', appVersion: '0.1.0' } })).toThrow();
     expect(() => parsePairingPayload({ token: 'x', device: { name: 'Phone', platform: 'ios', appVersion: '0.1.0' } })).toThrow();
     expect(() => parsePairingPayload({ token: 'x', device: { name: 'Phone', platform: 'android' } })).toThrow();
+    expect(() => parsePairingPayload({ token: 'x', device: { name: 'Phone\n', platform: 'android', appVersion: '0.1.0' } })).toThrow();
+  });
+
+  it('removes obsolete peer addresses from the persisted device registry', async () => {
+    const path = registryPath();
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, JSON.stringify({
+      devices: [{
+        id: 'existing-device',
+        name: 'Android',
+        platform: 'android',
+        appVersion: '0.1.0',
+        address: '192.168.1.20',
+        credential: 'existing-device-credential',
+        pairedAt: '2026-09-01T00:00:00.000Z',
+      }],
+    }));
+
+    const registry = new JsonDeviceRegistry(path);
+    expect((await registry.get('existing-device'))?.name).toBe('Android');
+    const persisted = JSON.parse(await readFile(path, 'utf8')) as { devices: Array<Record<string, unknown>> };
+    expect(persisted.devices[0]).not.toHaveProperty('address');
   });
 
   it('creates a QR deep link with host, port, and token', async () => {
@@ -75,8 +97,14 @@ describe('PairingSession', () => {
     const device = await session.approve(request);
     const response = await responsePromise;
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ accepted: true, deviceId: device.id, credential: device.credential });
+    expect(await response.json()).toMatchObject({
+      accepted: true,
+      deviceId: device.id,
+      credential: device.credential,
+      connectionPort: 43124,
+    });
     expect(await registry.list()).toEqual([device]);
+    expect(device).not.toHaveProperty('address');
     await session.close();
   });
 

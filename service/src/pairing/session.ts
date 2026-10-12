@@ -25,6 +25,7 @@ export class PairingSession {
     private readonly registry: DeviceRegistry,
     private readonly ttlMs = 5 * 60_000,
     private readonly now: () => number = Date.now,
+    private readonly connectionPort = 43124,
   ) {
     this.token = createPairingToken(ttlMs, now());
   }
@@ -47,10 +48,14 @@ export class PairingSession {
     this.assertPending(request);
     const device = await this.registry.add({
       ...request.device,
-      address: request.address,
       credential: randomBytes(32).toString('base64url'),
     });
-    this.resolvePending({ accepted: true, deviceId: device.id, credential: device.credential });
+    this.resolvePending({
+      accepted: true,
+      deviceId: device.id,
+      credential: device.credential,
+      connectionPort: this.connectionPort,
+    });
     return device;
   }
 

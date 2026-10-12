@@ -17,12 +17,9 @@ export interface PairingRequest {
   address: string;
 }
 
-export interface PairingResponse {
-  accepted: boolean;
-  deviceId?: string;
-  credential?: string;
-  message?: string;
-}
+export type PairingResponse =
+  | { accepted: true; deviceId: string; credential: string; connectionPort: number }
+  | { accepted: false; message: string };
 
 const MAX_FIELD_LENGTH = 200;
 
@@ -35,10 +32,12 @@ export function parsePairingPayload(value: unknown): PairingRequestPayload {
     typeof device.name !== 'string' ||
     !device.name.trim() ||
     device.name.length > MAX_FIELD_LENGTH ||
+    /[\u0000-\u001f\u007f]/.test(device.name) ||
     device.platform !== PAIRING_PLATFORM ||
     typeof device.appVersion !== 'string' ||
     !device.appVersion.trim() ||
-    device.appVersion.length > MAX_FIELD_LENGTH
+    device.appVersion.length > MAX_FIELD_LENGTH ||
+    /[\u0000-\u001f\u007f]/.test(device.appVersion)
   ) {
     throw new Error('Pairing device must contain name, platform "android", and appVersion');
   }

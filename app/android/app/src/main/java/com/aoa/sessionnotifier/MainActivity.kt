@@ -12,6 +12,8 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.security.GeneralSecurityException
+import org.json.JSONException
 
 class MainActivity : Activity() {
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
@@ -20,6 +22,7 @@ class MainActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var action: Button
     private lateinit var progress: ProgressBar
+    private var connection: PersistentConnection? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,6 +32,17 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         executor.shutdownNow()
         super.onDestroy()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        loadPairedDevice()
+    }
+
+    override fun onStop() {
+        connection?.stop()
+        connection = null
+        super.onStop()
     }
 
     private fun showHome() {
@@ -89,9 +103,22 @@ class MainActivity : Activity() {
                 progress.visibility = View.GONE
                 if (result is PairingResult.Success) {
                     try {
-                        CredentialStore(this).save(result.deviceId, result.credential)
+                        CredentialStore(this).save(
+                            result.deviceId,
+                            result.credential,
+                            link.host,
+                            result.connectionPort,
+                            deviceName(),
+                        )
                         status.text = getString(R.string.pairing_complete)
-                    } catch (error: Exception) {
+                        loadPairedDevice()
+                    } catch (_: GeneralSecurityException) {
+                        showFailure(getString(R.string.credential_save_failed))
+                    } catch (_: JSONException) {
+                        showFailure(getString(R.string.credential_save_failed))
+                    } catch (_: IllegalArgumentException) {
+                        showFailure(getString(R.string.credential_save_failed))
+                    } catch (_: IllegalStateException) {
                         showFailure(getString(R.string.credential_save_failed))
                     }
                 } else {
@@ -99,6 +126,41 @@ class MainActivity : Activity() {
                 }
             }
         }
+    }
+
+    private fun loadPairedDevice() {
+        val credentials = try {
+            CredentialStore(this).load()
+        } catch (error: GeneralSecurityException) {
+            status.text = getString(R.string.credential_load_failed, error.message ?: "stored data is invalid")
+            return
+        } catch (error: JSONException) {
+            status.text = getString(R.string.credential_load_failed, error.message ?: "stored data is invalid")
+            return
+        } catch (error: IllegalArgumentException) {
+            status.text = getString(R.string.credential_load_failed, error.message ?: "stored data is invalid")
+            return
+        } ?: return
+        if (credentials.host.isNullOrBlank() || credentials.port == null) {
+            status.text = getString(R.string.pairing_endpoint_missing)
+            return
+        }
+        connection?.stop()
+        lateinit var candidate: PersistentConnection
+        candidate = PersistentConnection(credentials) { state ->
+            runOnUiThread {
+                if (connection !== candidate) return@runOnUiThread
+                status.text = when (state) {
+                    ConnectionState.CONNECTING -> getString(R.string.connection_connecting)
+                    ConnectionState.CONNECTED -> getString(R.string.connection_connected, credentials.deviceName)
+                    ConnectionState.RECONNECTING -> getString(R.string.connection_reconnecting)
+                    ConnectionState.AUTHENTICATION_FAILED -> getString(R.string.connection_authentication_failed)
+                    ConnectionState.DISCONNECTED -> getString(R.string.connection_disconnected)
+                }
+            }
+        }
+        connection = candidate
+        candidate.start()
     }
 
     private fun showFailure(message: String) {

@@ -10,6 +10,7 @@ export interface Config {
   hookInboxPath: string;
   devicesPath: string;
   pairingTtlMs: number;
+  connectionPort: number;
 }
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Config {
@@ -22,6 +23,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Config
 
   const inactiveAfterMs = parsePositiveInteger(environment.SESSION_NOTIFIER_IDLE_AFTER_MS ?? '300000', 'SESSION_NOTIFIER_IDLE_AFTER_MS');
   const pairingTtlMs = parsePositiveInteger(environment.SESSION_NOTIFIER_PAIRING_TTL_MS ?? '300000', 'SESSION_NOTIFIER_PAIRING_TTL_MS');
+  const connectionPort = parsePort(environment.SESSION_NOTIFIER_CONNECTION_PORT ?? '43124');
   return {
     sources: [...new Set(sources as SourceId[])],
     inactiveAfterMs,
@@ -29,11 +31,20 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Config
     hookInboxPath: environment.SESSION_NOTIFIER_HOOK_INBOX ?? './session-notifier-hooks.jsonl',
     devicesPath: environment.SESSION_NOTIFIER_DEVICES_PATH ?? './session-notifier-devices.json',
     pairingTtlMs,
+    connectionPort,
   };
 }
 
 function parsePositiveInteger(value: string, variableName: string): number {
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed <= 0) throw new Error(`${variableName} must be a positive integer in milliseconds`);
+  return parsed;
+}
+
+function parsePort(value: string): number {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > 65_535) {
+    throw new Error('SESSION_NOTIFIER_CONNECTION_PORT must be an integer between 1 and 65535');
+  }
   return parsed;
 }

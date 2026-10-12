@@ -9,7 +9,7 @@ import { PairingSession } from './session.js';
 
 export async function runPairCommand(config: Config): Promise<void> {
   const registry = new JsonDeviceRegistry(resolve(config.devicesPath));
-  const session = new PairingSession(registry, config.pairingTtlMs);
+  const session = new PairingSession(registry, config.pairingTtlMs, Date.now, config.connectionPort);
   const input = createInterface({ input: stdin, output: stdout });
   const stop = (): void => { void session.close(); input.close(); };
   process.once('SIGINT', stop);
@@ -20,6 +20,7 @@ export async function runPairCommand(config: Config): Promise<void> {
     const host = await determineLanAddress();
     const link = await createPairingLink(host, info.port, info.token);
     console.log(`Pairing receiver listening on ${host}:${info.port}`);
+    console.log(`Persistent connection endpoint: ${host}:${config.connectionPort}`);
     console.log(link.qr);
     console.log(`Pairing link: ${link.deepLink}`);
     console.log('Waiting for an Android device to connect...');

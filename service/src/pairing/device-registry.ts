@@ -8,17 +8,17 @@ export interface PairedDevice {
   name: string;
   platform: PairingDeviceInfo['platform'];
   appVersion: string;
-  address: string;
   credential: string;
   pairedAt: string;
 }
 
 interface PersistedDevices {
-  devices: PairedDevice[];
+  devices: Array<PairedDevice & { address?: string }>;
 }
 
 export interface DeviceRegistry {
   add(device: Omit<PairedDevice, 'id' | 'pairedAt'>): Promise<PairedDevice>;
+  get(id: string): Promise<PairedDevice | undefined>;
   list(): Promise<PairedDevice[]>;
 }
 
@@ -45,17 +45,34 @@ export class JsonDeviceRegistry implements DeviceRegistry {
     return this.devices.map((device) => ({ ...device }));
   }
 
+  async get(id: string): Promise<PairedDevice | undefined> {
+    await this.load();
+    await this.refresh();
+    const device = this.devices.find((candidate) => candidate.id === id);
+    return device ? { ...device } : undefined;
+  }
+
   private async load(): Promise<void> {
     if (this.loaded) return;
     this.loaded = true;
+    await this.refresh();
+  }
+
+  private async refresh(): Promise<void> {
+    let parsed: PersistedDevices;
     try {
-      const parsed = JSON.parse(await readFile(this.path, 'utf8')) as PersistedDevices;
+      parsed = JSON.parse(await readFile(this.path, 'utf8')) as PersistedDevices;
       if (!Array.isArray(parsed.devices)) throw new Error('devices must be an array');
-      this.devices = parsed.devices;
     } catch (error: unknown) {
-      if (isMissingFile(error)) return;
+      if (isMissingFile(error)) {
+        this.devices = [];
+        return;
+      }
       throw new Error(`Unable to load device registry: ${error instanceof Error ? error.message : String(error)}`);
     }
+    const hadPeerAddresses = parsed.devices.some((device) => 'address' in device);
+    this.devices = parsed.devices.map(({ address: _address, ...device }) => device);
+    if (hadPeerAddresses) await this.save();
   }
 
   private async save(): Promise<void> {
