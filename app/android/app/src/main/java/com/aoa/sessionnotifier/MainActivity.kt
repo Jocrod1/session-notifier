@@ -1,5 +1,6 @@
 package com.aoa.sessionnotifier
 
+import android.Manifest
 import android.app.Activity
 import android.os.Build
 import android.os.Bundle
@@ -145,22 +146,37 @@ class MainActivity : Activity() {
             status.text = getString(R.string.pairing_endpoint_missing)
             return
         }
+        requestNotificationPermissionIfNeeded()
+        val notificationPresenter = NotificationPresenter(this)
         connection?.stop()
         lateinit var candidate: PersistentConnection
-        candidate = PersistentConnection(credentials) { state ->
-            runOnUiThread {
-                if (connection !== candidate) return@runOnUiThread
-                status.text = when (state) {
-                    ConnectionState.CONNECTING -> getString(R.string.connection_connecting)
-                    ConnectionState.CONNECTED -> getString(R.string.connection_connected, credentials.deviceName)
-                    ConnectionState.RECONNECTING -> getString(R.string.connection_reconnecting)
-                    ConnectionState.AUTHENTICATION_FAILED -> getString(R.string.connection_authentication_failed)
-                    ConnectionState.DISCONNECTED -> getString(R.string.connection_disconnected)
+        candidate = PersistentConnection(
+            credentials,
+            onStateChanged = { state ->
+                runOnUiThread {
+                    if (connection !== candidate) return@runOnUiThread
+                    status.text = when (state) {
+                        ConnectionState.CONNECTING -> getString(R.string.connection_connecting)
+                        ConnectionState.CONNECTED -> getString(R.string.connection_connected, credentials.deviceName)
+                        ConnectionState.RECONNECTING -> getString(R.string.connection_reconnecting)
+                        ConnectionState.AUTHENTICATION_FAILED -> getString(R.string.connection_authentication_failed)
+                        ConnectionState.DISCONNECTED -> getString(R.string.connection_disconnected)
+                    }
                 }
-            }
-        }
+            },
+            presentNotification = notificationPresenter::present,
+        )
         connection = candidate
         candidate.start()
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_NOTIFICATION_PERMISSION)
+        }
     }
 
     private fun showFailure(message: String) {
@@ -173,5 +189,9 @@ class MainActivity : Activity() {
         val manufacturer = Build.MANUFACTURER.trim()
         val model = Build.MODEL.trim()
         return if (model.startsWith(manufacturer, ignoreCase = true)) model else "$manufacturer $model".trim()
+    }
+
+    private companion object {
+        const val REQUEST_NOTIFICATION_PERMISSION = 1
     }
 }

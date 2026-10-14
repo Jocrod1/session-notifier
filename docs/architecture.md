@@ -125,8 +125,8 @@ stable device ID and random credential to the JSON device registry. The
 service's WebSocket connection manager authenticates those credentials and
 tracks currently connected devices; temporary disconnects never remove or
 modify the pairing. `DeviceMessaging` exposes connection status, connected
-device listing, and typed outbound messages without exposing WebSocket
-details to session/event handling.
+device listing, typed outbound messages, and bounded one-shot notification
+acknowledgements without exposing WebSocket details to session/event handling.
 
 The service listens on the configured local-network connection port (default
 `43124`) at `/connect`. Protocol version 1 uses a credential-bearing `hello`
@@ -134,7 +134,22 @@ from Android, a `hello` acknowledgement from the PC, and nonce-based `ping`
 and `pong` messages. The service authenticates each new socket against the
 current JSON registry; it permits one active connection per device. This
 transport is independent of `Notifier`: session notifications are not sent
-over the connection yet.
+over the connection yet. A development-only `test-notification` command sends
+one fixed notification to Android when exactly one device is connected.
+Acknowledgements are correlated to the notification ID and authenticated
+socket; pending requests are removed on acknowledgement, timeout, disconnect,
+or connection replacement. An ID cannot be reused on the same live connection,
+so late/duplicate acknowledgements cannot satisfy a later request.
+
+Android validates incoming notification fields, submits them through
+`NotificationManager`, and acknowledges `processed` separately from the
+presentation outcome. `submitted` means the native API accepted the request;
+it cannot guarantee the operating system displayed it. Android 8+ uses a
+notification channel and Android 13+ requires `POST_NOTIFICATIONS`. Permission
+denial, app-wide notification disablement, channel disablement, and submission
+failure are reported distinctly. This remains foreground-only: the activity
+owns the WebSocket and no Android foreground service or background-delivery
+guarantee is introduced.
 
 Android encrypts the device ID, credential, device name, and PC endpoint
 hint using Android Keystore-backed AES-GCM storage. The endpoint is connection

@@ -18,4 +18,5 @@
     <string name="connection_reconnecting">Connection lost. Reconnecting…</string>
     <string name="connection_authentication_failed">The PC no longer recognizes this pairing. Pair again to reconnect.</string>
     <string name="connection_disconnected">Disconnected from the paired computer.</string>
+    <string name="notification_channel_name">Session notifications</string>
 </resources>
