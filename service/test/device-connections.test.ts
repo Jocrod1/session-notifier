@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { WebSocket } from 'ws';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { DeviceConnections } from '../src/connection/device-connections.js';
+import { DeviceConnections, selectSingleConnectedDevice } from '../src/connection/device-connections.js';
 import { CONNECTION_PROTOCOL_VERSION } from '../src/connection/protocol.js';
 import { JsonDeviceRegistry, type PairedDevice } from '../src/pairing/device-registry.js';
 
@@ -98,6 +98,101 @@ describe('device connections', () => {
     await waitUntil(() => !connections.isConnected(device.id));
   });
 
+  it('selects a test target only when exactly one device is connected', async () => {
+    const onlyDevice = { id: device.id, name: device.name, connectedAt: new Date().toISOString() };
+    expect(selectSingleConnectedDevice([])).toBeUndefined();
+    expect(selectSingleConnectedDevice([onlyDevice])).toBe(onlyDevice);
+    expect(selectSingleConnectedDevice([onlyDevice, onlyDevice])).toBeUndefined();
+  });
+
+  it('sends a test notification and correlates its acknowledgement by ID', async () => {
+    const socket = await connect(connections.listeningPort!, hello(device));
+    const pending = connections.sendTestNotification(device.id);
+    const notification = await waitForMessage(socket) as {
+      type: string;
+      notificationId: string;
+      title: string;
+      body: string;
+    };
+    expect(notification).toMatchObject({
+      type: 'notification',
+      title: 'Session Notifier test',
+      body: 'Test notification sent from the PC service.',
+    });
+    socket.send(JSON.stringify(notificationAck('unrelated-id')));
+    const matchingAck = notificationAck(notification.notificationId);
+    socket.send(JSON.stringify(matchingAck));
+    await expect(pending).resolves.toEqual(matchingAck);
+    socket.close(1000);
+  });
+
+  it('does not match an acknowledgement from another authenticated connection', async () => {
+    const secondDevice = await registry.add({
+      name: 'Second Android',
+      platform: 'android',
+      appVersion: '0.1.0',
+      credential: 'another-test-credential-0123456789',
+    });
+    const firstSocket = await connect(connections.listeningPort!, hello(device));
+    const secondSocket = await connect(connections.listeningPort!, hello(secondDevice));
+    const pending = connections.sendNotification(device.id, 'correlation-test', 'Test', 'Test body');
+    const notification = await waitForMessage(firstSocket) as { notificationId: string };
+    secondSocket.send(JSON.stringify(notificationAck(notification.notificationId)));
+    firstSocket.send(JSON.stringify(notificationAck(notification.notificationId)));
+    await expect(pending).resolves.toMatchObject({ notificationId: notification.notificationId });
+    firstSocket.close(1000);
+    secondSocket.close(1000);
+  });
+
+  it('rejects duplicate pending notification IDs without disturbing the original request', async () => {
+    const socket = await connect(connections.listeningPort!, hello(device));
+    const pending = connections.sendNotification(device.id, 'duplicate-test', 'Test', 'Test body');
+    const notification = await waitForMessage(socket) as { notificationId: string };
+    expect(() => connections.sendNotification(device.id, 'duplicate-test', 'Test', 'Test body')).toThrow(
+      'has already been used on this connection',
+    );
+    const acknowledgement = notificationAck(notification.notificationId);
+    socket.send(JSON.stringify(acknowledgement));
+    await expect(pending).resolves.toEqual(acknowledgement);
+    expect(() => connections.sendNotification(device.id, 'duplicate-test', 'Test', 'Test body')).toThrow(
+      'has already been used on this connection',
+    );
+    socket.close(1000);
+  });
+
+  it('rejects invalid notification content before sending', async () => {
+    const socket = await connect(connections.listeningPort!, hello(device));
+    expect(() => connections.sendNotification(device.id, 'invalid id', 'Test', 'Test body')).toThrow(
+      'Test notification content is invalid',
+    );
+    expect(() => connections.sendNotification(device.id, 'valid-id', ' ', 'Test body')).toThrow(
+      'Test notification content is invalid',
+    );
+    expect(() => connections.sendNotification(device.id, 'valid-id', 'Test', 'b'.repeat(1_001))).toThrow(
+      'Test notification content is invalid',
+    );
+    socket.close(1000);
+  });
+
+  it('times out an unacknowledged notification and clears the pending ID', async () => {
+    const socket = await connect(connections.listeningPort!, hello(device));
+    const pending = connections.sendNotification(device.id, 'timeout-test', 'Test', 'Test body', 25);
+    await expect(pending).rejects.toThrow('Timed out waiting for notification acknowledgement');
+    const retry = connections.sendNotification(device.id, 'timeout-retry-test', 'Test', 'Test body');
+    const notification = await waitForMessage(socket) as { notificationId: string };
+    socket.send(JSON.stringify(notificationAck(notification.notificationId)));
+    await expect(retry).resolves.toMatchObject({ notificationId: 'timeout-retry-test' });
+    socket.close(1000);
+  });
+
+  it('rejects pending notification requests when their device disconnects', async () => {
+    const socket = await connect(connections.listeningPort!, hello(device));
+    const pending = connections.sendNotification(device.id, 'disconnect-test', 'Test', 'Test body');
+    await waitForMessage(socket);
+    socket.close(1000);
+    await expect(pending).rejects.toThrow('disconnected');
+  });
+
   it('keeps a device connected when it answers server heartbeats', async () => {
     const heartbeatConnections = new DeviceConnections(registry, 0, 50, 300);
     await heartbeatConnections.start();
@@ -150,6 +245,16 @@ describe('device connections', () => {
     await replacement.close();
   });
 });
+
+function notificationAck(notificationId: string): Record<string, unknown> {
+  return {
+    type: 'notification-ack',
+    protocolVersion: CONNECTION_PROTOCOL_VERSION,
+    notificationId,
+    processed: true,
+    presentation: 'submitted',
+  };
+}
 
 function hello(device: PairedDevice): Record<string, unknown> {
   return {

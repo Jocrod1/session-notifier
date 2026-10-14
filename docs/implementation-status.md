@@ -23,6 +23,14 @@ The initial service implementation is complete for the following scope:
 - Android Keystore-backed persistence of the paired identity and PC endpoint,
   plus foreground-lifecycle connection ownership and bounded reconnect backoff.
 - PC connection/protocol tests and deterministic Android retry-backoff tests.
+- Authenticated version 1 test-notification delivery from the PC service to
+  Android, with native notification channels, Android 13+ runtime permission
+  handling, and bounded per-message acknowledgement correlation.
+- A `test-notification` command for a running service. It sends only when
+  exactly one Android device is connected and reports processing separately
+  from native presentation outcomes.
+- Focused protocol, acknowledgement, timeout, disconnect, duplicate-ID,
+  Android payload validation, and notification-availability tests.
 
 ## Intentional Exclusions
 
@@ -34,8 +42,15 @@ The service contains none of the following concepts from Age of Agents or the co
 
 ## Current Constraints
 
-- Console is the sole notification adapter. The adapter boundary is ready, but no remote or desktop transport is registered. Session notifications are not sent to Android.
-- The Android connection runs only while the app is foregrounded. Background delivery would require a separately designed foreground-service lifecycle and is not implemented.
+- Console remains the sole session-notification adapter. The authenticated
+  Android test sender is not yet wired to normal session lifecycle
+  notifications.
+- The Android connection runs only while the app is foregrounded. Background
+  delivery is not implemented; no Android foreground service or push provider
+  is used.
+- A successful `submitted` acknowledgement means `NotificationManager.notify()`
+  accepted the request. Android/the user may still not visibly see it because
+  of system policy or later device state.
 - The PC endpoint is persisted as a routing hint. A changed PC LAN address requires updating that hint through the pairing flow; existing Android installs from before endpoint persistence must pair once after upgrading.
 - The source default includes the implemented OpenCode and GitHub Copilot hook inputs. `docker-claude` remains recognized but is not enabled by default because its collector is not implemented.
 - File roots missing at startup are disabled until the service is restarted.
@@ -58,17 +73,15 @@ The service contains none of the following concepts from Age of Agents or the co
 
 ## Verification Snapshot
 
-At the initial implementation milestone, the service passed:
+The Phase 2 test-delivery slice passes:
 
 ```text
 npm run build
 npm test
+.\gradlew.bat testDebugUnitTest assembleDebug
 ```
 
-The suite contains five tests in three files:
-
-- `test/lifecycle.test.ts`: starts, explicit terminal events, inactivity, and terminal deduplication.
-- `test/notifier.test.ts`: persisted delivery idempotency across a simulated restart.
-- `test/file-sources.test.ts`: Claude prompt/end parsing, synthetic prompt rejection, Codex abort parsing, and Windows local-LLM path classification.
-
-Use the current test suite as the narrow regression gate while extending one collector or adapter at a time.
+Tests cover protocol validation, per-device acknowledgement correlation,
+timeouts, disconnect cleanup, duplicate pending IDs, Android notification
+payload validation, and permission/channel outcomes in addition to the
+existing regression suite.

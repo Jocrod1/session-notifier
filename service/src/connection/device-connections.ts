@@ -1,8 +1,8 @@
 import { timingSafeEqual, randomUUID } from 'node:crypto';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { DeviceRegistry, PairedDevice } from '../pairing/device-registry.js';
-import { CONNECTION_PATH, CONNECTION_PROTOCOL_VERSION, parseClientJson, ProtocolError } from './protocol.js';
-import type { ClientMessage, ServerMessage } from './protocol.js';
+import { CONNECTION_PATH, CONNECTION_PROTOCOL_VERSION, isNotificationId, parseClientJson, ProtocolError } from './protocol.js';
+import type { ClientMessage, NotificationAcknowledgement, ServerMessage } from './protocol.js';
 
 export interface ConnectedDevice {
   id: string;
@@ -10,10 +10,27 @@ export interface ConnectedDevice {
   connectedAt: string;
 }
 
+export function selectSingleConnectedDevice(devices: ConnectedDevice[]): ConnectedDevice | undefined {
+  return devices.length === 1 ? devices[0] : undefined;
+}
+
 export interface DeviceMessaging {
   isConnected(deviceId: string): boolean;
   listConnected(): ConnectedDevice[];
   send(deviceId: string, message: ServerMessage): void;
+  sendNotification(
+    deviceId: string,
+    notificationId: string,
+    title: string,
+    body: string,
+    timeoutMs?: number,
+  ): Promise<NotificationAcknowledgement>;
+}
+
+interface PendingNotification {
+  resolve: (acknowledgement: NotificationAcknowledgement) => void;
+  reject: (error: Error) => void;
+  timeout: NodeJS.Timeout;
 }
 
 interface ActiveConnection {
@@ -21,6 +38,8 @@ interface ActiveConnection {
   socket: WebSocket;
   pingTimer: NodeJS.Timeout;
   pendingPing?: { nonce: string; timeout: NodeJS.Timeout };
+  pendingNotifications: Map<string, PendingNotification>;
+  usedNotificationIds: Set<string>;
 }
 
 export class DeviceConnections implements DeviceMessaging {
@@ -74,6 +93,58 @@ export class DeviceConnections implements DeviceMessaging {
     connection.socket.send(JSON.stringify(message));
   }
 
+  sendNotification(
+    deviceId: string,
+    notificationId: string,
+    title: string,
+    body: string,
+    timeoutMs = 5_000,
+  ): Promise<NotificationAcknowledgement> {
+    const connection = this.active.get(deviceId);
+    if (!connection || connection.socket.readyState !== WebSocket.OPEN) {
+      throw new Error(`Device ${deviceId} is not connected`);
+    }
+    if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) {
+      throw new Error('Notification acknowledgement timeout must be a positive integer');
+    }
+    if (
+      !isNotificationId(notificationId) ||
+      title.trim().length === 0 ||
+      title.length > 120 ||
+      /[\u0000-\u001f\u007f]/.test(title) ||
+      body.trim().length === 0 ||
+      body.length > 1_000 ||
+      /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(body)
+    ) {
+      throw new Error('Test notification content is invalid');
+    }
+    if (connection.usedNotificationIds.has(notificationId)) {
+      throw new Error(`Notification ID ${notificationId} has already been used on this connection`);
+    }
+    connection.usedNotificationIds.add(notificationId);
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        connection.pendingNotifications.delete(notificationId);
+        reject(new Error(`Timed out waiting for notification acknowledgement from ${connection.device.name}`));
+      }, timeoutMs);
+      timeout.unref();
+      connection.pendingNotifications.set(notificationId, { resolve, reject, timeout });
+      try {
+        this.send(deviceId, {
+          type: 'notification',
+          protocolVersion: CONNECTION_PROTOCOL_VERSION,
+          notificationId,
+          title,
+          body,
+        });
+      } catch (error: unknown) {
+        clearTimeout(timeout);
+        connection.pendingNotifications.delete(notificationId);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
+    });
+  }
+
   async close(): Promise<void> {
     const server = this.server;
     if (!server) return;
@@ -81,6 +152,7 @@ export class DeviceConnections implements DeviceMessaging {
     for (const connection of this.active.values()) {
       clearInterval(connection.pingTimer);
       if (connection.pendingPing) clearTimeout(connection.pendingPing.timeout);
+      this.failPendingNotifications(connection, new Error('Connection manager is shutting down'));
     }
     for (const socket of server.clients) socket.close(1001, 'Service shutting down');
     this.server = undefined;
@@ -138,12 +210,15 @@ export class DeviceConnections implements DeviceMessaging {
           if (previous) {
             clearInterval(previous.pingTimer);
             if (previous.pendingPing) clearTimeout(previous.pendingPing.timeout);
+            this.failPendingNotifications(previous, new Error('Connection replaced by a newer connection'));
             previous.socket.close(4001, 'Replaced by a newer connection');
           }
           const active: ActiveConnection = {
             device: { id: result.id, name: result.name, connectedAt: new Date().toISOString() },
             socket,
             pingTimer: setInterval(() => this.ping(active), this.heartbeatMs),
+            pendingNotifications: new Map(),
+            usedNotificationIds: new Set(),
           };
           active.pingTimer.unref();
           connection = active;
@@ -161,6 +236,15 @@ export class DeviceConnections implements DeviceMessaging {
         return;
       }
       if (message.type !== 'pong' || !connection) {
+        if (message.type === 'notification-ack' && connection) {
+          const pending = connection.pendingNotifications.get(message.notificationId);
+          if (pending) {
+            clearTimeout(pending.timeout);
+            connection.pendingNotifications.delete(message.notificationId);
+            pending.resolve(message);
+          }
+          return;
+        }
         socket.close(4400, 'Unexpected message');
         return;
       }
@@ -174,6 +258,7 @@ export class DeviceConnections implements DeviceMessaging {
       if (!connection) return;
       clearInterval(connection.pingTimer);
       if (connection.pendingPing) clearTimeout(connection.pendingPing.timeout);
+      this.failPendingNotifications(connection, new Error(`Device ${connection.device.name} disconnected`));
       if (this.active.get(connection.device.id) === connection) {
         this.active.delete(connection.device.id);
         console.log(`[device] ${connection.device.name} disconnected`);
@@ -219,6 +304,24 @@ export class DeviceConnections implements DeviceMessaging {
     } catch {
       connection.socket.close(4002, 'Heartbeat send failed');
     }
+  }
+
+  private failPendingNotifications(connection: ActiveConnection, error: Error): void {
+    for (const [notificationId, pending] of connection.pendingNotifications) {
+      clearTimeout(pending.timeout);
+      pending.reject(error);
+      connection.pendingNotifications.delete(notificationId);
+    }
+  }
+
+  sendTestNotification(deviceId: string, timeoutMs = 5_000): Promise<NotificationAcknowledgement> {
+    return this.sendNotification(
+      deviceId,
+      randomUUID(),
+      'Session Notifier test',
+      'Test notification sent from the PC service.',
+      timeoutMs,
+    );
   }
 }
 

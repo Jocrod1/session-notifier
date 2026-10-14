@@ -50,6 +50,8 @@ The version 1 text-message protocol is:
 {"type":"hello","protocolVersion":1,"deviceId":"<paired-id>"}
 {"type":"ping","protocolVersion":1,"nonce":"<random-nonce>"}
 {"type":"pong","protocolVersion":1,"nonce":"<same-nonce>"}
+{"type":"notification","protocolVersion":1,"notificationId":"<unique-id>","title":"Session Notifier test","body":"Test notification sent from the PC service."}
+{"type":"notification-ack","protocolVersion":1,"notificationId":"<same-id>","processed":true,"presentation":"submitted"}
 ```
 
 The first message is Android's authentication hello; the second is the PC's
@@ -58,19 +60,54 @@ and credential against the JSON registry. The credential is never included
 in PC connection logs. The PC initiates nonce-based pings and expects matching
 pongs; unresponsive sockets are closed. Binary messages, malformed JSON,
 oversized payloads, unknown message types, and unsupported versions are
-rejected. A second socket for the same device replaces the previous one. The
-connection exists only while the Android activity is in the foreground;
-returning to the app reconnects with bounded exponential backoff.
+rejected. An older Android build treats the new `notification` type as unknown
+and closes that socket with code `4400`; it does not silently ignore messages
+or negotiate a fallback. Update Android before using the test sender. A second
+socket for the same device replaces the previous one.
 
-To manually test, start the service with `npm start`, run
-`npm start -- pair` in another `service/` terminal, accept the Android device,
-and paste the pairing link into the app. Confirm the PC prints
-`[device] <name> connected` and the app shows **Connected**. Background the
-app to observe the PC's disconnected log, then return to the app and confirm
-it reconnects. Stop and restart the PC service to verify reconnect behavior;
-the pairing record remains in `session-notifier-devices.json`. Force-stop and
-reopen the Android app to verify startup reconnect. These logs do not contain
-credentials.
+### Test notification delivery
+
+The test notification exercises the authenticated socket and native Android
+notification display. It does not yet forward normal session lifecycle
+notifications through `Notifier`.
+
+1. Build and install the Android debug app from `app/android` with
+   `.\gradlew.bat assembleDebug`. Start the PC service from `service` with
+   `npm start`.
+2. In a second `service/` terminal run `npm start -- pair`, accept the Android
+   device, and paste the pairing link into the app.
+3. Keep the Android app open in the foreground and wait for **Connected**.
+   On Android 13+, allow the notification permission prompt.
+4. In the terminal running the service, enter `test-notification`. The command
+   sends only when exactly one device is connected; it refuses zero or
+   multiple connected devices rather than selecting one arbitrarily.
+5. Confirm a native **Session Notifier test** notification appears on Android
+   and the service prints `processed=true, presentation=submitted`.
+
+The Android app creates its `Session notifications` channel on Android 8+.
+Android 13+ requires runtime `POST_NOTIFICATIONS` permission. The
+acknowledgement distinguishes processing (`processed`) from presentation:
+`submitted` means `NotificationManager.notify()` accepted the request, not
+that the OS guaranteed it was visible. Other outcomes are
+`permission-denied`, `notifications-disabled` (app-level notifications
+switched off), `channel-disabled`, and `failed`. The service reports a missing
+acknowledgement after five seconds as a timeout; disconnecting or replacing
+the authenticated socket fails pending acknowledgements immediately. No
+notification queue or retry is used.
+
+To verify permission/channel reporting, revoke notification permission in
+Android settings (Android 13+) or disable the app's `Session notifications`
+channel, reconnect by returning to the app, then send the test again. The
+service should print `presentation=permission-denied` or
+`presentation=channel-disabled`. Android's app-wide notification toggle is
+reported as `notifications-disabled`.
+
+The connection exists only while the Android activity is in the foreground;
+backgrounding the app closes it, and returning reconnects with bounded
+exponential backoff. To verify lifecycle behavior, background and reopen the
+app, then stop and restart the PC service. The pairing record remains in
+`session-notifier-devices.json`. Force-stop and reopen the Android app to
+verify startup reconnect. These logs do not contain credentials.
 
 Android does not maintain the socket while the app is backgrounded or force
 stopped. This milestone has no background notification delivery, so it does

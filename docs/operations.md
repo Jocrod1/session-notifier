@@ -173,12 +173,19 @@ remote adapters must flush or cancel their work in `close()`.
 
 The service listens for paired Android clients on
 `SESSION_NOTIFIER_CONNECTION_PORT` at `/connect`. See
-[PC Pairing](pairing.md) for the version 1 hello/ping/pong protocol and a
+[PC Pairing](pairing.md) for the version 1 hello/ping/pong and notification protocol plus a
 manual reconnect test. The Android connection runs only while the app is in
 the foreground; Android lifecycle changes stop and resume it, and transient
 network failures use a one-second to 30-second exponential reconnect delay.
 No Android foreground service is required until background delivery is a
 product requirement.
+
+With exactly one paired Android device connected in the foreground, type
+`test-notification` into the terminal running `npm start` to send a native
+Android test notification. The command rejects zero or multiple connections.
+It waits up to five seconds for an acknowledgement; see [PC Pairing](pairing.md)
+for the presentation outcomes and permission/channel troubleshooting. This
+development sender is not yet wired to normal session lifecycle notifications.
 
 ## Troubleshooting
 

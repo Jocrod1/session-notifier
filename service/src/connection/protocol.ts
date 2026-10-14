@@ -21,14 +21,37 @@ export interface PongMessage {
   nonce: string;
 }
 
+export interface NotificationMessage {
+  type: 'notification';
+  protocolVersion: 1;
+  notificationId: string;
+  title: string;
+  body: string;
+}
+
+export type NotificationPresentation =
+  | 'submitted'
+  | 'permission-denied'
+  | 'notifications-disabled'
+  | 'channel-disabled'
+  | 'failed';
+
+export interface NotificationAcknowledgement {
+  type: 'notification-ack';
+  protocolVersion: 1;
+  notificationId: string;
+  processed: boolean;
+  presentation: NotificationPresentation;
+}
+
 export interface ConnectedMessage {
   type: 'hello';
   protocolVersion: 1;
   deviceId: string;
 }
 
-export type ClientMessage = HelloMessage | PongMessage;
-export type ServerMessage = ConnectedMessage | PingMessage;
+export type ClientMessage = HelloMessage | PongMessage | NotificationAcknowledgement;
+export type ServerMessage = ConnectedMessage | PingMessage | NotificationMessage;
 
 const MAX_FIELD_LENGTH = 200;
 const MAX_MESSAGE_LENGTH = 16_384;
@@ -73,6 +96,25 @@ export function parseClientMessage(value: unknown): ClientMessage {
     return { type: 'pong', protocolVersion: CONNECTION_PROTOCOL_VERSION, nonce: value.nonce };
   }
 
+  if (value.type === 'notification-ack') {
+    if (
+      typeof value.notificationId !== 'string' ||
+      !isNotificationId(value.notificationId) ||
+      typeof value.processed !== 'boolean' ||
+      !isNotificationPresentation(value.presentation) ||
+      (value.processed === false && value.presentation !== 'failed')
+    ) {
+      throw new ProtocolError('Malformed notification acknowledgement', 4400);
+    }
+    return {
+      type: 'notification-ack',
+      protocolVersion: CONNECTION_PROTOCOL_VERSION,
+      notificationId: value.notificationId,
+      processed: value.processed,
+      presentation: value.presentation,
+    };
+  }
+
   throw new ProtocolError('Unsupported connection message', 4400);
 }
 
@@ -90,6 +132,18 @@ export function parseClientJson(data: string): ClientMessage {
 
 function isCredential(value: string): boolean {
   return value.length >= 16 && value.length <= 128 && /^[A-Za-z0-9_-]+$/.test(value);
+}
+
+export function isNotificationId(value: string): boolean {
+  return value.length > 0 && value.length <= 128 && /^[A-Za-z0-9_-]+$/.test(value);
+}
+
+function isNotificationPresentation(value: unknown): value is NotificationPresentation {
+  return value === 'submitted' ||
+    value === 'permission-denied' ||
+    value === 'notifications-disabled' ||
+    value === 'channel-disabled' ||
+    value === 'failed';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

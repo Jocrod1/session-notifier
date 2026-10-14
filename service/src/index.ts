@@ -1,4 +1,6 @@
 import { resolve } from 'node:path';
+import { createInterface } from 'node:readline';
+import { stdin } from 'node:process';
 import { loadConfig } from './config.js';
 import type { SessionRef } from './domain.js';
 import type { SessionEvent } from './domain.js';
@@ -12,7 +14,7 @@ import { SourceWatcher } from './watcher.js';
 import { HookInboxSource } from './hooks/source.js';
 import { runPairCommand } from './pairing/cli.js';
 import { JsonDeviceRegistry } from './pairing/device-registry.js';
-import { DeviceConnections } from './connection/device-connections.js';
+import { DeviceConnections, selectSingleConnectedDevice } from './connection/device-connections.js';
 
 const config = loadConfig();
 if (process.argv[2] === 'pair') {
@@ -65,12 +67,39 @@ const interval = setInterval(() => void notifier.deliver(lifecycle.tick(Date.now
 console.log(`[session-notifier] sources: ${config.sources.join(', ')}`);
 console.log(`[session-notifier] inactive after: ${config.inactiveAfterMs}ms`);
 console.log(`[session-notifier] device connections listening on 0.0.0.0:${deviceConnections.listeningPort}`);
+const commandInput = createInterface({ input: stdin });
+commandInput.on('line', (line) => {
+  void runDevelopmentCommand(line).catch((error: unknown) => {
+    console.error(`[session-notifier] command failed: ${error instanceof Error ? error.message : String(error)}`);
+  });
+});
+
+async function runDevelopmentCommand(line: string): Promise<void> {
+  const [command, ...extra] = line.trim().split(/\s+/);
+  if (command !== 'test-notification') return;
+  if (extra.length > 0) {
+    console.error('Usage: test-notification');
+    return;
+  }
+  const connected = deviceConnections.listConnected();
+  const target = selectSingleConnectedDevice(connected);
+  if (!target) {
+    console.error(connected.length === 0
+      ? 'No paired Android device is connected.'
+      : 'More than one device is connected; test-notification requires exactly one.');
+    return;
+  }
+  console.log(`[session-notifier] sending test notification to ${target.name} (${target.id})`);
+  const acknowledgement = await deviceConnections.sendTestNotification(target.id);
+  console.log(`[session-notifier] notification ${acknowledgement.notificationId}: processed=${acknowledgement.processed}, presentation=${acknowledgement.presentation}`);
+}
 
 let stopping = false;
 async function stop(): Promise<void> {
   if (stopping) return;
   stopping = true;
   clearInterval(interval);
+  commandInput.close();
   await deviceConnections.close();
   await Promise.all(watchers.map((watcher) => watcher.stop()));
   await hookSource.stop();

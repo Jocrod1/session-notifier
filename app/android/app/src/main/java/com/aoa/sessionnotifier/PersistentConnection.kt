@@ -1,5 +1,6 @@
 package com.aoa.sessionnotifier
 
+import android.util.Log
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -40,9 +41,10 @@ class ReconnectBackoff(
     }
 }
 
-class PersistentConnection(
+internal class PersistentConnection(
     private val credentials: PairedDeviceCredentials,
     private val onStateChanged: (ConnectionState) -> Unit,
+    private val presentNotification: (IncomingNotification) -> NotificationPresentation,
 ) {
     private val client = OkHttpClient.Builder()
         .pingInterval(20, TimeUnit.SECONDS)
@@ -105,7 +107,14 @@ class PersistentConnection(
             override fun onMessage(webSocket: WebSocket, text: String) {
                 enqueue {
                     if (!running || socket !== webSocket) return@enqueue
-                    val responseMessage = responseToServerMessage(text, credentials, authenticated)
+                    val responseMessage = responseToServerMessage(text, credentials, authenticated) { notification ->
+                        try {
+                            presentNotification(notification)
+                        } catch (error: Exception) {
+                            Log.e(TAG, "Unable to process incoming notification", error)
+                            NotificationPresentation.FAILED
+                        }
+                    }
                     if (responseMessage == null) {
                         webSocket.close(4400, "Invalid protocol message")
                     } else if (responseMessage.isEmpty()) {
@@ -162,5 +171,6 @@ class PersistentConnection(
 
     companion object {
         private const val CONNECTION_PATH = "/connect"
+        private const val TAG = "SessionNotifier"
     }
 }
