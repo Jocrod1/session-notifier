@@ -26,6 +26,8 @@ The initial service implementation is complete for the following scope:
 - Authenticated version 1 test-notification delivery from the PC service to
   Android, with native notification channels, Android 13+ runtime permission
   handling, and bounded per-message acknowledgement correlation.
+- Forwarding of lifecycle notifications to all currently connected,
+  authenticated Android devices, alongside unchanged structured console output.
 - A `test-notification` command for a running service. It sends only when
   exactly one Android device is connected and reports processing separately
   from native presentation outcomes.
@@ -42,9 +44,11 @@ The service contains none of the following concepts from Age of Agents or the co
 
 ## Current Constraints
 
-- Console remains the sole session-notification adapter. The authenticated
-  Android test sender is not yet wired to normal session lifecycle
-  notifications.
+- Android delivery is best-effort and foreground-only. The console adapter is
+  awaited; Android acknowledgement waits run in the background and failures
+  are logged without stopping source processing. No offline queue or retry is
+  implemented, so a failed remote delivery is not retried after its local
+  notification key is recorded.
 - The Android connection runs only while the app is foregrounded. Background
   delivery is not implemented; no Android foreground service or push provider
   is used.
@@ -58,7 +62,9 @@ The service contains none of the following concepts from Age of Agents or the co
 - Persistence contains delivered notification keys only, not active-session state. A restart cannot resume a quiet period already in progress.
 - Notification-key history grows without retention or compaction.
 - Source parsers are intentionally slim lifecycle extractors. They require fixtures from real source versions as those formats change.
-- A notification-adapter failure stops handling the current source event because delivery is awaited. It does not mark the event delivered, but automatic retry/backoff is not implemented yet.
+- A local console-adapter failure still stops handling the current source event
+  because local delivery is awaited. The Android adapter is isolated from that
+  path and has no automatic retry/backoff.
 
 ## Recommended Next Work
 

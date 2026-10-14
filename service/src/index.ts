@@ -7,6 +7,8 @@ import type { SessionEvent } from './domain.js';
 import { SessionLifecycleTracker } from './lifecycle.js';
 import { Notifier } from './notifier.js';
 import { ConsoleNotificationAdapter } from './notifications/console.js';
+import { AndroidNotificationAdapter } from './notifications/android.js';
+import { CompositeNotificationAdapter } from './notifications/composite.js';
 import { FILE_SOURCES } from './sources/file-sources.js';
 import { StateStore } from './state-store.js';
 import type { Fact } from './transcript/facts.js';
@@ -30,7 +32,13 @@ const deviceConnections = new DeviceConnections(
 );
 await deviceConnections.start();
 
-const notifier = new Notifier(new ConsoleNotificationAdapter(), stateStore);
+const notifier = new Notifier(
+  new CompositeNotificationAdapter(
+    new ConsoleNotificationAdapter(),
+    new AndroidNotificationAdapter(deviceConnections),
+  ),
+  stateStore,
+);
 const lifecycle = new SessionLifecycleTracker({ inactiveAfterMs: config.inactiveAfterMs });
 
 async function handleFacts(session: SessionRef, facts: Fact[]): Promise<void> {

@@ -58,7 +58,8 @@ npm start
 Hooks are an additional input mechanism; the Claude, Codex, Koda, and
 local-LLM passive listeners remain supported. OpenCode and GitHub Copilot
 explicit hooks all produce the same normalized `work-finished` event and use
-the existing lifecycle and console notification pipeline.
+the existing lifecycle pipeline. Notifications are printed to the console and
+asynchronously forwarded to each connected paired Android device.
 
 Run these commands from `service/`:
 
@@ -76,7 +77,10 @@ npm run test:hook -- github-copilot
 
 Each command invokes `src/hooks/cli.ts` as a subprocess, appends to a
 temporary JSONL inbox, starts the same `HookInboxSource` used by the service,
-and delivers through the normal lifecycle/notifier/console adapter chain.
+and delivers through the lifecycle/notifier chain to structured console
+output. This isolated helper does not open a device connection. In a running
+service, the same hook event also forwards asynchronously to connected Android
+devices.
 Expected output includes:
 
 ```text
@@ -166,8 +170,9 @@ A corrupted state file is deliberately ignored after a stderr warning, keeping t
 
 Use Ctrl+C or send SIGTERM. The service clears its inactivity interval,
 gracefully closes active device WebSockets, stops file watchers, and closes
-the notification adapter. The console adapter has no buffered work. Future
-remote adapters must flush or cancel their work in `close()`.
+the notification adapter. The composed adapter waits for in-flight Android
+acknowledgement handling during shutdown; the transport bounds each wait to
+five seconds.
 
 ## Paired Android connection
 
@@ -180,12 +185,15 @@ network failures use a one-second to 30-second exponential reconnect delay.
 No Android foreground service is required until background delivery is a
 product requirement.
 
-With exactly one paired Android device connected in the foreground, type
-`test-notification` into the terminal running `npm start` to send a native
-Android test notification. The command rejects zero or multiple connections.
-It waits up to five seconds for an acknowledgement; see [PC Pairing](pairing.md)
-for the presentation outcomes and permission/channel troubleshooting. This
-development sender is not yet wired to normal session lifecycle notifications.
+Normal session lifecycle notifications are sent to every paired Android device
+currently connected in the foreground; local console notifications continue
+regardless of Android connectivity. Android delivery does not queue messages
+while disconnected or retry a failed delivery. The `test-notification`
+development command remains available: with exactly one paired Android device
+connected, type it into the terminal running `npm start`. It rejects zero or
+multiple connections and waits up to five seconds for an acknowledgement; see
+[PC Pairing](pairing.md) for presentation outcomes and
+permission/channel troubleshooting.
 
 ## Troubleshooting
 
