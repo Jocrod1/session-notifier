@@ -1,6 +1,12 @@
 # Session Notifier Documentation
 
-`session-notifier` contains a local TypeScript service and a separate native Android client. The service observes local AI-agent session transcripts and emits notifications when work starts, when a turn finishes or aborts, and when a session later becomes inactive. Android pairing and an authenticated, foreground-lifecycle WebSocket connection are implemented. A test-notification command now sends a native Android notification; normal session lifecycle notifications are still not forwarded to Android.
+`session-notifier` contains a local TypeScript service and a separate native
+Android client. The service observes local AI-agent session transcripts and
+emits notifications when work starts, when a turn finishes or aborts, and
+when a session later becomes inactive. Android pairing and an authenticated,
+foreground-lifecycle WebSocket connection are implemented. Test and lifecycle
+notifications are forwarded to connected Android devices; delivery is
+best-effort and foreground-only.
 
 It was derived from the input-detection heuristics in the sibling `context-recorder` project, but it does not include any Age of Agents UI, gamification, mission, hero, token, or world model.
 
@@ -9,7 +15,8 @@ It was derived from the input-detection heuristics in the sibling `context-recor
 - [Architecture](architecture.md): pipeline, domain contracts, lifecycle behavior, and extension points.
 - [Operations](operations.md): installation, commands, environment configuration, output, state, and troubleshooting.
 - [Sources](sources.md): supported agent sources, transcript heuristics, source paths, and current limitations.
-- [Implementation Status](implementation-status.md): delivered scope, known constraints, and the next implementation work.
+- [Roadmap](roadmap.md): development phases and acceptance criteria.
+- [Implementation Status](implementation-status.md): current status, verified results, blockers, and the single next task.
 - [PC Pairing](pairing.md): pairing command, device persistence, protocol, and manual Android test-notification delivery.
 
 ## Quick Start
