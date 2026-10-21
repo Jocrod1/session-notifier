@@ -100,14 +100,26 @@ Repeated terminal records are suppressed through `turnOpen`. Replayed or duplica
 
 ## Delivery
 
-`Notifier` accepts one `NotificationAdapter`. For every generated signal it:
+`Notifier` accepts one `NotificationAdapter`. The runtime composes the local
+console adapter with an Android adapter through `CompositeNotificationAdapter`.
+For every generated signal the notifier:
 
 1. Builds a deterministic notification key.
 2. Skips the signal if the state store says the key was delivered.
-3. Calls `adapter.notify(signal)`.
-4. Records the key only after successful delivery.
+3. Awaits local console output, then starts Android delivery without waiting
+   for its acknowledgement.
+4. Records the key after local delivery and Android dispatch have been
+   initiated.
 
-The built-in `ConsoleNotificationAdapter` writes structured JSON to stdout. A future adapter can implement the same two-method interface:
+The built-in `ConsoleNotificationAdapter` writes structured JSON to stdout.
+`AndroidNotificationAdapter` converts the same signal into a concise title and
+body, then uses `DeviceMessaging` to send it to each currently connected
+authenticated device. The existing version-1 envelope carries the signal's
+session, source, location, timestamp, prompt or end reason as body text.
+Acknowledgements remain bounded by the transport's five-second timeout. A
+disconnect, negative presentation outcome, or timeout is logged and does not
+affect local delivery. There is no offline queue or retry; persisted delivery
+keys therefore do not cause a later Android retry.
 
 ```ts
 interface NotificationAdapter {
@@ -116,7 +128,8 @@ interface NotificationAdapter {
 }
 ```
 
-Appropriate future adapters include webhook, Windows desktop notifications, Slack, Discord, and email. They should retain the existing signal payload and leave source/lifecycle behavior unchanged.
+Adapters retain the existing signal payload and leave source/lifecycle
+behavior unchanged.
 
 ## Paired Device Connections
 
@@ -132,14 +145,14 @@ The service listens on the configured local-network connection port (default
 `43124`) at `/connect`. Protocol version 1 uses a credential-bearing `hello`
 from Android, a `hello` acknowledgement from the PC, and nonce-based `ping`
 and `pong` messages. The service authenticates each new socket against the
-current JSON registry; it permits one active connection per device. This
-transport is independent of `Notifier`: session notifications are not sent
-over the connection yet. A development-only `test-notification` command sends
-one fixed notification to Android when exactly one device is connected.
-Acknowledgements are correlated to the notification ID and authenticated
-socket; pending requests are removed on acknowledgement, timeout, disconnect,
-or connection replacement. An ID cannot be reused on the same live connection,
-so late/duplicate acknowledgements cannot satisfy a later request.
+current JSON registry; it permits one active connection per device. Session
+notifications use this transport through the Android adapter. A development
+`test-notification` command continues to send one fixed notification only when
+exactly one device is connected. Acknowledgements are correlated to the
+notification ID and authenticated socket; pending requests are removed on
+acknowledgement, timeout, disconnect, or connection replacement. An ID cannot
+be reused on the same live connection, so late/duplicate acknowledgements
+cannot satisfy a later request.
 
 Android validates incoming notification fields, submits them through
 `NotificationManager`, and acknowledges `processed` separately from the
@@ -171,6 +184,6 @@ The implementation currently persists delivered keys only. In-memory lifecycle t
 
 ## Runtime Composition
 
-[service/src/index.ts](../service/src/index.ts) loads configuration, restores delivery state, starts the paired-device WebSocket listener, creates the lifecycle tracker and console adapter, starts file watchers, and schedules the 15-second inactivity tick. SIGINT and SIGTERM close device connections, stop file watchers, and close the notification adapter.
+[service/src/index.ts](../service/src/index.ts) loads configuration, restores delivery state, starts the paired-device WebSocket listener, creates the lifecycle tracker and composed console/Android adapters, starts file watchers, and schedules the 15-second inactivity tick. SIGINT and SIGTERM close device connections, stop file watchers, and close the notification adapter.
 
 The generic [service/src/watcher.ts](../service/src/watcher.ts) serializes file events, tails complete JSONL lines only, and forwards facts to the composition root. It ignores historical file contents discovered at startup by registering a tail at the current end of each file. Only new appended records produce notifications.

@@ -3,10 +3,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { SessionEvent, SessionSignal } from '../src/domain.js';
+import type { DeviceMessaging } from '../src/connection/device-connections.js';
+import type { NotificationAcknowledgement } from '../src/connection/protocol.js';
 import { appendHook } from '../src/hooks/inbox.js';
 import { HookInboxSource } from '../src/hooks/source.js';
 import { SessionLifecycleTracker } from '../src/lifecycle.js';
 import { Notifier } from '../src/notifier.js';
+import { AndroidNotificationAdapter } from '../src/notifications/android.js';
+import { CompositeNotificationAdapter } from '../src/notifications/composite.js';
 import { StateStore } from '../src/state-store.js';
 
 /**
@@ -150,6 +154,53 @@ describe('hook ingestion integration', () => {
 
     expect(adapter.signals).toHaveLength(1);
     expect(adapter.signals[0]).toMatchObject({ type: 'ended', reason: 'completed' });
+  });
+
+  it('forwards a real hook notification to Android and the local adapter exactly once', async () => {
+    await appendHook({ source: 'opencode', payload: openCodePayload() }, inboxPath);
+
+    const stateStore = new StateStore(join(workDir, 'state.json'));
+    await stateStore.load();
+    const local = new RecordingAdapter();
+    const sent: Array<{ title: string; body: string; timeoutMs?: number }> = [];
+    const devices: DeviceMessaging = {
+      isConnected: () => true,
+      listConnected: () => [{ id: 'device-1', name: 'Test Android', connectedAt: new Date().toISOString() }],
+      send: () => { throw new Error('Unexpected unacknowledged send'); },
+      sendNotification: async (_deviceId, notificationId, title, body, timeoutMs) => {
+        sent.push({ title, body, timeoutMs });
+        return {
+          type: 'notification-ack',
+          protocolVersion: 1,
+          notificationId,
+          processed: true,
+          presentation: 'submitted',
+        } satisfies NotificationAcknowledgement;
+      },
+    };
+    const notifier = new Notifier(
+      new CompositeNotificationAdapter(local, new AndroidNotificationAdapter(devices)),
+      stateStore,
+    );
+    const lifecycle = new SessionLifecycleTracker({ inactiveAfterMs: 5 * 60_000 });
+    const source = new HookInboxSource(inboxPath, async (event) => {
+      await notifier.deliver(lifecycle.event(event));
+    });
+
+    source.start();
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 300));
+    await source.stop();
+    await notifier.close();
+
+    expect(local.signals).toHaveLength(1);
+    expect(local.signals[0]).toMatchObject({ type: 'ended', reason: 'completed' });
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({ title: 'Session completed' });
+    expect(sent[0]?.timeoutMs).toBe(5_000);
+    expect(sent[0]?.body).toContain('Session: ses_int_1');
+    expect(sent[0]?.body).toContain('Source: opencode');
+    expect(sent[0]?.body).toContain('Location: /work/integration');
+    expect(sent[0]?.body).toContain('Reason: completed');
   });
 
   it('produces ended/completed even when no prior started event was observed', async () => {
