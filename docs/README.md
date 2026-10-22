@@ -19,6 +19,10 @@ It was derived from the input-detection heuristics in the sibling `context-recor
 - [Implementation Status](implementation-status.md): current status, verified results, blockers, and the single next task.
 - [PC Pairing](pairing.md): pairing command, device persistence, protocol, and manual Android test-notification delivery.
 
+## Agent Workflow
+
+The end-to-end repository task workflow is in [the `guided-task` skill](../.agents/skills/guided-task/SKILL.md). It is discoverable by both OpenCode and GitHub Copilot CLI; invoke it as `@guided-task` in OpenCode or `/guided-task` in Copilot CLI. The skill follows the repository's approval gate and does not authorize work outside an approved task.
+
 ## Quick Start
 
 ```powershell

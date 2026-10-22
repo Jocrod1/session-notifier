@@ -18,6 +18,7 @@ This file is the canonical repository-wide agent instruction. Keep project polic
 
 ## Repository workflow skills
 
-- Use `.github/skills/resume-project/SKILL.md` to resume work after a gap or establish current project context.
-- Use `.github/skills/session-handoff/SKILL.md` to record a completed task and leave a reliable handoff.
+- Use `.agents/skills/guided-task/SKILL.md` for the end-to-end approved task workflow.
+- Use `.agents/skills/resume-project/SKILL.md` to resume work after a gap or establish current project context.
+- Use `.agents/skills/session-handoff/SKILL.md` to record a completed task and leave a reliable handoff.
 - `docs/roadmap.md` records phase goals and acceptance criteria. `docs/implementation-status.md` is the single current status and handoff record.
