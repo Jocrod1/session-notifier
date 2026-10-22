@@ -5,7 +5,7 @@
 - Node.js 22 or newer.
 - `npm`.
 - Read access to the selected agent's local transcript directory.
-- `better-sqlite3` is optional and currently unused until the OpenCode collector is implemented.
+- `better-sqlite3` is an optional dependency but is currently unused; OpenCode SQLite polling is out of scope for this POC.
 - Docker is optional and currently unused until the Docker-Claude collector is implemented.
 
 ## Commands

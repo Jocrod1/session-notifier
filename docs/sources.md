@@ -98,11 +98,12 @@ Forward its stdin to `src/hooks/cli.ts --source=github-copilot`.
 
 Both hook adapters emit the normalized `work-finished` event and preserve `SessionRef.source`, `id`, and `location`. They do not replace transcript listeners.
 
-## OpenCode: Planned database collector
+## OpenCode SQLite collector: deferred
 
-OpenCode stores sessions in `~/.local/share/opencode/opencode.db`; SQLite polling is intentionally out of scope because the plugin hook is the supported completion input for this POC.
-
-It must degrade gracefully if the native dependency, database, or expected schema is unavailable. Schema mismatch should log one clear health error and disable only this collector, without stopping other sources.
+OpenCode stores sessions in `~/.local/share/opencode/opencode.db`. SQLite
+polling is out of scope for this POC; the plugin event hook is the supported
+OpenCode completion input. Revisit a database collector only if the project
+explicitly changes this scope decision.
 
 ## Docker Claude: Planned Collector
 

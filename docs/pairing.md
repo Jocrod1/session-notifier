@@ -60,16 +60,18 @@ and credential against the JSON registry. The credential is never included
 in PC connection logs. The PC initiates nonce-based pings and expects matching
 pongs; unresponsive sockets are closed. Binary messages, malformed JSON,
 oversized payloads, unknown message types, and unsupported versions are
-rejected. An older Android build treats the new `notification` type as unknown
+rejected. An older Android build treats the `notification` type as unknown
 and closes that socket with code `4400`; it does not silently ignore messages
-or negotiate a fallback. Update Android before using the test sender. A second
-socket for the same device replaces the previous one.
+or negotiate a fallback. Update Android before using notification delivery.
+A second socket for the same device replaces the previous one.
 
-### Test notification delivery
+### Notification delivery
 
-The test notification exercises the authenticated socket and native Android
-notification display. It does not yet forward normal session lifecycle
-notifications through `Notifier`.
+Both `test-notification` and normal lifecycle events use the authenticated
+socket and native Android notification handling. Lifecycle notifications
+continue to be written to the console. Android delivery is best-effort and
+foreground-only; disconnected devices do not receive queued or retried
+notifications.
 
 1. Build and install the Android debug app from `app/android` with
    `.\gradlew.bat assembleDebug`. Start the PC service from `service` with
@@ -81,6 +83,8 @@ notifications through `Notifier`.
 4. In the terminal running the service, enter `test-notification`. The command
    sends only when exactly one device is connected; it refuses zero or
    multiple connected devices rather than selecting one arbitrarily.
+   Normal lifecycle notifications are forwarded to each currently connected,
+   authenticated Android device.
 5. Confirm a native **Session Notifier test** notification appears on Android
    and the service prints `processed=true, presentation=submitted`.
 
