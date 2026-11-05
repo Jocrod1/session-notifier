@@ -179,14 +179,18 @@ five seconds.
 The service listens for paired Android clients on
 `SESSION_NOTIFIER_CONNECTION_PORT` at `/connect`. See
 [PC Pairing](pairing.md) for the version 1 hello/ping/pong and notification protocol plus a
-manual reconnect test. The Android connection runs only while the app is in
-the foreground; Android lifecycle changes stop and resume it, and transient
-network failures use a one-second to 30-second exponential reconnect delay.
-No Android foreground service is required until background delivery is a
-product requirement.
+manual reconnect and locked-phone checks. After pairing, tap **Start connection**
+in the visible Android app. The `connectedDevice` foreground service owns the
+socket across activity stop/background/lock; pairing and opening the app do
+not start it automatically. Transient network failures use a one-second to
+30-second exponential reconnect delay. **Stop connection** in the app or the
+separate low-importance **PC connection status** notification closes the socket,
+cancels reconnect attempts, and removes that foreground notice. Force-stop,
+process death, and reboot require a new manual Start. OS power/network policy
+can still interrupt background delivery; physical-device acceptance is pending.
 
 Normal session lifecycle notifications are sent to every paired Android device
-currently connected in the foreground; local console notifications continue
+currently connected through the Android service; local console notifications continue
 regardless of Android connectivity. Android delivery does not queue messages
 while disconnected or retry a failed delivery. The `test-notification`
 development command remains available: with exactly one paired Android device

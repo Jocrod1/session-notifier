@@ -160,19 +160,32 @@ presentation outcome. `submitted` means the native API accepted the request;
 it cannot guarantee the operating system displayed it. Android 8+ uses a
 notification channel and Android 13+ requires `POST_NOTIFICATIONS`. Permission
 denial, app-wide notification disablement, channel disablement, and submission
-failure are reported distinctly. This remains foreground-only: the activity
-owns the WebSocket and no Android foreground service or background-delivery
-guarantee is introduced.
+failure are reported distinctly. Agent-event notifications request public
+lock-screen visibility; Android and user privacy/channel settings can still
+conceal their contents. An independent low-importance `PC connection status`
+channel carries the ongoing foreground-service notice and its Stop action.
+Event notifications use a separate tag as well as a separate channel, so an
+event ID cannot replace that service notice.
 
 Android encrypts the device ID, credential, device name, and PC endpoint
 hint using Android Keystore-backed AES-GCM storage. The endpoint is connection
 routing data, not device identity; the device ID and credential remain stable
-if the Android device changes its own network address. The app owns the
-connection only while its activity is in the foreground, closes it when the
-activity stops, and reconnects when it returns or the process restarts.
+if the Android device changes its own network address. `ConnectionService`
+owns `PersistentConnection` and its reconnect executor. The activity binds to
+observe status and issue Stop, and starts the foreground service only on an
+explicit Start connection tap. Binding, pairing, activity return, and process
+restart do not start a socket. Activity stop merely unbinds; it does not stop
+an already user-started connection service.
 Reconnect delays grow from one second to a 30-second maximum and reset after
-authentication succeeds. No foreground service is used because background
-delivery is not in this milestone. A changed PC LAN address requires updating
+authentication succeeds. Stop and service destruction close/cancel the socket,
+cancel pending reconnect work, shut down the transport resources, and remove
+the foreground notice. Missing/unreadable/invalid credentials or authentication
+failure stop the started service with a visible error while the activity is
+bound; no authentication-failure retry is attempted. Late callbacks from old
+owners cannot overwrite current service state. `START_NOT_STICKY` requires
+manual Start again after process death; there is no boot receiver or saved
+auto-start flag. Android power/network restrictions still apply; this is not
+a background-delivery guarantee. A changed PC LAN address requires updating
 the endpoint through the pairing screen; this does not change the PC's device
 identity or delete its pairing.
 
