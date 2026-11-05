@@ -10,6 +10,26 @@ This roadmap records project phases and their acceptance criteria. The current p
 - Project documentation agrees with the implemented behavior, or discrepancies are explicitly recorded as blockers.
 - The status record distinguishes checked facts from assumptions and dates verification; it proposes exactly one next task.
 
+## Approved Android milestone: user-started connection service
+
+This explicitly approved milestone precedes the previously proposed Docker
+collector; it does not authorize or change collector scope.
+
+- A manually started `connectedDevice` foreground service owns the paired
+  WebSocket and bounded reconnect behavior independently of activity visibility.
+- Pairing and opening the app do not start the connection; Start/Stop and live
+  service state are available in the activity. Stop closes the transport,
+  cancels retries, and removes the separate low-importance foreground notice.
+- Missing/invalid credentials and authentication failure stop cleanly with
+  actionable state. Notification permission and lock-screen privacy limitations
+  are explained without equating accepted notification requests with display.
+- Focused lifecycle/state unit tests, Android debug assembly, and PC build/tests
+  pass. Physical-device checks verify locked delivery, Stop/no further retries,
+  PC/Wi-Fi recovery and subsequent delivery, and notification-permission denial.
+  The milestone is not physically verified until those outcomes are recorded.
+- No QR scanning, unpair/revocation, PC service changes, encryption changes,
+  expanded event fields, or boot startup are included.
+
 ## Phase 1: Docker-Claude collector
 
 - Container discovery and file access use an injectable Docker client so behavior can be tested without a live daemon.
