@@ -30,12 +30,12 @@ disconnected events need not be persisted or replayed. These decisions replace
 the previous unresolved-priority record; no technical feature is authorized
 by the documentation rewrite.
 
-| Milestone | Current state |
-| --- | --- |
+| Milestone                             | Current state                                                                                                                                                                                      |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | M1 — Core notification infrastructure | Partial: reusable pairing/transport/notification code; QR scanning, revocation, single-pair enforcement, Android foreground service, and Windows background-operation experience remain incomplete |
-| M2 — Supported agent integrations | Partial: completion-only adapters; incompatible OpenCode V1 example, missing attention categories, filtering, and successive-event correctness |
-| M3 — Public MVP readiness | Not release-ready: incomplete M1/M2, no fresh locked-phone/live-agent/public-installation validation |
-| M4/M5 — Expansion | Deferred; not active MVP implementation commitments |
+| M2 — Supported agent integrations     | Partial: completion-only adapters; incompatible OpenCode V1 example, missing attention categories, filtering, and successive-event correctness                                                     |
+| M3 — Public MVP readiness             | Not release-ready: incomplete M1/M2, no fresh locked-phone/live-agent/public-installation validation                                                                                               |
+| M4/M5 — Expansion                     | Deferred; not active MVP implementation commitments                                                                                                                                                |
 
 ## MVP acceptance matrix
 
@@ -47,25 +47,25 @@ milestone is marked implemented and verified.
 
 Android file names below refer to `app/android/app/src/main/java/com/aoa/sessionnotifier/`.
 
-| Criteria | Classification | Evidence and remaining gap |
-| --- | --- | --- |
-| M1.1 — Windows operation | Partial | `service/src/index.ts` supports a long-running `npm start` process and shutdown; no documented background start/stop experience; resource footprint not measured |
-| M1.2 — QR/approved pairing | Partial | `service/src/pairing/qr.ts` generates QR; `session.ts` requires explicit approval. `MainActivity.kt` only accepts pasted URI; no scanner |
-| M1.3 — Single-pair trust/revocation | Partial | `service/src/connection/device-connections.ts` authenticates against credentials, but registry accepts multiple devices and has no removal API; no unpair UI or active-access revocation |
-| M1.4 — Common notification contract | Partial | `service/src/domain.ts` models lifecycle signals and only `work-finished` input. Required attention categories/project-name/description contract is absent |
-| M1.5 — Android companion controls | Partial | Status and notification permission prompting exist in `MainActivity.kt`; foreground-service controls, unpair, explanations, and PC endpoint display are incomplete/missing |
-| M1.6 — Locked-phone/service delivery | Missing; physical behavior unverified | `MainActivity.onStop()` closes the connection; `AndroidManifest.xml` declares no service/FGS permissions. `NotificationPresenter.kt` has no explicit public lock-screen visibility |
-| M1.7 — Trust/protocol/permission tests | Present; unverified against MVP | Service pairing/connection/adapter tests and Android protocol/backoff tests exist. No implemented single-pair revocation or FGS behavior to validate |
-| M2.1/M2.2 — Copilot coverage | Partial | `service/src/hooks/normalize.ts` and example configure only `agentStop`/`end_turn`; approval, clarification, and attention-requiring failures are not mapped |
-| M2.1/M2.2 — OpenCode coverage | Partial | Example uses V1 plugin factory; normalizer expects `properties.sessionID`. V2 uses plugin definitions/subscriptions and `data.sessionID`; coverage beyond idle is absent |
-| M2.3 — Content and filtering | Partial/conflicting | `service/src/notifications/android.ts` includes source/location and lifecycle text, not the new complete attention content. Defaults include non-MVP sources and start/inactivity notifications |
-| M2.4 — Independent events | Partial; failure reproduced | `service/src/lifecycle.ts` emits one completion for a hook-only session and suppresses subsequent turns; Android notification ID hashes also need collision-safe independence review |
-| M2.4 — Delivery isolation/reconnect | Partial | Android dispatch is isolated from awaited console output, acknowledgements are bounded, and no Android offline retry queue exists; reconnect backoff is activity-owned, not FGS-owned |
-| M2.5 — Windows integration setup | Partial | Placeholder/example commands are not verified installed integrations; shared absolute inbox paths and PowerShell stdin/path handling need validation |
-| M3.1 — Complete physical experience | Unknown/not achieved | Historical foreground smoke test is narrower than new acceptance; no fresh locked-phone, unpair/revocation, repeated-turn, or service lifecycle result |
-| M3.2 — Installation/troubleshooting | Partial | Source-checkout/pairing/test guides exist; public Windows background operation, firewall/ports, QR scanner, and supported-version instructions are incomplete |
-| M3.3 — Release artifact path | Partial | `.github/workflows/ci.yml` uploads a debug APK artifact; no release workflow or published-release evidence inspected. Automation is not itself required |
-| M3.4 — Reproducible external setup | Unknown | No fresh independent installation evidence; CI uses Ubuntu, not the target Windows platform, and does not run Android unit tests |
+| Criteria                               | Classification                        | Evidence and remaining gap                                                                                                                                                                      |
+| -------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M1.1 — Windows operation               | Partial                               | `service/src/index.ts` supports a long-running `npm start` process and shutdown; no documented background start/stop experience; resource footprint not measured                                |
+| M1.2 — QR/approved pairing             | Partial                               | `service/src/pairing/qr.ts` generates QR; `session.ts` requires explicit approval. `MainActivity.kt` only accepts pasted URI; no scanner                                                        |
+| M1.3 — Single-pair trust/revocation    | Partial                               | `service/src/connection/device-connections.ts` authenticates against credentials, but registry accepts multiple devices and has no removal API; no unpair UI or active-access revocation        |
+| M1.4 — Common notification contract    | Partial                               | `service/src/domain.ts` models lifecycle signals and only `work-finished` input. Required attention categories/project-name/description contract is absent                                      |
+| M1.5 — Android companion controls      | Partial                               | Status and notification permission prompting exist in `MainActivity.kt`; foreground-service controls, unpair, explanations, and PC endpoint display are incomplete/missing                      |
+| M1.6 — Locked-phone/service delivery   | Missing; physical behavior unverified | `MainActivity.onStop()` closes the connection; `AndroidManifest.xml` declares no service/FGS permissions. `NotificationPresenter.kt` has no explicit public lock-screen visibility              |
+| M1.7 — Trust/protocol/permission tests | Present; unverified against MVP       | Service pairing/connection/adapter tests and Android protocol/backoff tests exist. No implemented single-pair revocation or FGS behavior to validate                                            |
+| M2.1/M2.2 — Copilot coverage           | Partial                               | `service/src/hooks/normalize.ts` and example configure only `agentStop`/`end_turn`; approval, clarification, and attention-requiring failures are not mapped                                    |
+| M2.1/M2.2 — OpenCode coverage          | Partial                               | Example uses V1 plugin factory; normalizer expects `properties.sessionID`. V2 uses plugin definitions/subscriptions and `data.sessionID`; coverage beyond idle is absent                        |
+| M2.3 — Content and filtering           | Partial/conflicting                   | `service/src/notifications/android.ts` includes source/location and lifecycle text, not the new complete attention content. Defaults include non-MVP sources and start/inactivity notifications |
+| M2.4 — Independent events              | Partial; failure reproduced           | `service/src/lifecycle.ts` emits one completion for a hook-only session and suppresses subsequent turns; Android notification ID hashes also need collision-safe independence review            |
+| M2.4 — Delivery isolation/reconnect    | Partial                               | Android dispatch is isolated from awaited console output, acknowledgements are bounded, and no Android offline retry queue exists; reconnect backoff is activity-owned, not FGS-owned           |
+| M2.5 — Windows integration setup       | Partial                               | Placeholder/example commands are not verified installed integrations; shared absolute inbox paths and PowerShell stdin/path handling need validation                                            |
+| M3.1 — Complete physical experience    | Unknown/not achieved                  | Historical foreground smoke test is narrower than new acceptance; no fresh locked-phone, unpair/revocation, repeated-turn, or service lifecycle result                                          |
+| M3.2 — Installation/troubleshooting    | Partial                               | Source-checkout/pairing/test guides exist; public Windows background operation, firewall/ports, QR scanner, and supported-version instructions are incomplete                                   |
+| M3.3 — Release artifact path           | Partial                               | `.github/workflows/ci.yml` uploads a debug APK artifact; no release workflow or published-release evidence inspected. Automation is not itself required                                         |
+| M3.4 — Reproducible external setup     | Unknown                               | No fresh independent installation evidence; CI uses Ubuntu, not the target Windows platform, and does not run Android unit tests                                                                |
 
 ## Delivered foundation and retained non-MVP capabilities
 

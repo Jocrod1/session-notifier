@@ -19,4 +19,20 @@
     <string name="connection_authentication_failed">The PC no longer recognizes this pairing. Pair again to reconnect.</string>
     <string name="connection_disconnected">Disconnected from the paired computer.</string>
     <string name="notification_channel_name">Session notifications</string>
+    <string name="connection_channel_name">PC connection status</string>
+    <string name="connection_notification_title">Session Notifier PC connection</string>
+    <string name="start_connection">Start connection</string>
+    <string name="stop_connection">Stop connection</string>
+    <string name="service_stopped">Connection service stopped. Tap Start connection after pairing.</string>
+    <string name="service_connected">Connected to the paired computer.</string>
+    <string name="service_missing_credentials">No saved pairing. Pair with your computer before starting.</string>
+    <string name="service_invalid_credentials">Saved pairing or PC endpoint is missing, invalid, or unreadable. Pair again before starting.</string>
+    <string name="service_start_failed">Could not start the connection service. Return to the app and try again.</string>
+    <string name="service_unavailable">Connection service unavailable. Reopen the app to start manually.</string>
+    <string name="service_explanation">Pairing does not start the connection. Start it manually to stay connected while the app is backgrounded or the phone is locked. Stop closes the connection and cancels reconnect attempts. Stop the connection before pairing again.</string>
+    <string name="notification_explanation">Allow notifications for agent events and the ongoing PC connection status with its Stop action. The service can run without notification permission; on Android 13+, denial hides notifications from the drawer (the service is still listed in Active apps). Agent-event content requests public lock-screen visibility, but Android and your privacy settings may conceal it. Permission or an accepted request does not prove Android displayed a notification.</string>
+    <string name="allow_notifications">Allow notifications</string>
+    <string name="notification_settings">Notification settings</string>
+    <string name="notifications_allowed">Notification permission is allowed. Channel and privacy settings still control visibility.</string>
+    <string name="notifications_not_allowed">Notifications are not allowed or are disabled. Allow them or change Notification settings. You can still Start and Stop here.</string>
 </resources>
