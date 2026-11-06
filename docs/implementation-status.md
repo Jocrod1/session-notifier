@@ -1,224 +1,220 @@
-# Current Project Status and Session Handoff
+# Implementation Status and Handoff
 
-This is the single current status and handoff record. See the [project roadmap](roadmap.md) for phase acceptance criteria and [project instructions](../AGENTS.md) for the approval and verification policy.
+This is the single current status/handoff record. The [Product Roadmap](roadmap.md)
+defines the owner-confirmed MVP and acceptance criteria; [AGENTS.md](../AGENTS.md)
+defines approval and verification policy. Target requirements are not claims
+about current behavior.
 
-## Verified repository state
+## Repository snapshot — 2026-11-02
 
-**Checked 2026-11-05:** `main` remains at `4369a41` (merged guided-workflow
-documentation). The Android implementation commit `dbe7dc1` is on
-`worktree/android-foreground-service` in the isolated worktree
-`C:\Users\Jocro\.local\share\opencode\worktree\ba1e2a\pairing`. It was merged
-as `4af11f8` into `feat/android-foreground-service` in the original worktree
-`C:\Users\Jocro\Dev\aoa\session-notifier`; a follow-up handoff/conflict
-resolution commit is recorded below. The original worktree was clean before its
-pre-existing status edit documenting the global Copilot delegation task; that
-verified work was preserved and integrated as historical context. Its original
-stash backup is retained as `stash@{0}`. No separate repository task tracker
-was found; roadmap/status and explicit task approvals define this work.
+- **Branch/HEAD:** `docs/guided-agent-workflow` at `70d5d2f`, above `17273ab`
+  (initial workflow) and `e835ea0` (merged Android lifecycle forwarding).
+- **Working tree at task start:** `git status --short --branch` showed only
+  `docs/roadmap.md` and this file modified by the previous reconciliation.
+  Those edits were reviewed and incorporated into this approved rewrite;
+  the working tree is not claimed to be clean.
+- **Review scope:** service/domain/hooks/pairing/transport, Android source and
+  manifest, tests, examples, CI, existing documentation, and relevant history.
+  This was a targeted MVP review, not a complete implementation/security audit.
+- **Release evidence:** `git tag --list` returned no local tags. Remote releases
+  were not independently checked. CI produces a debug APK workflow artifact,
+  not evidence of a published GitHub Release or fresh public installation.
 
-The delivered-scope list below is summarized from project documentation and
-merged history, except the Android service work and checks freshly verified
-below; it is not a fresh line-by-line audit of every source adapter.
+## Current target and milestone state
 
-### Delivered scope (documented)
+**Target: MVP end-to-end release readiness.** The owner confirmed Windows,
+Android, Copilot CLI/OpenCode, same Wi-Fi, one PC/phone pair, attention-only
+notifications, QR/unpair, an Android foreground service with locked-phone
+delivery, and public developer-oriented distribution on 2026-11-02. Missed
+disconnected events need not be persisted or replayed. These decisions replace
+the previous unresolved-priority record; no technical feature is authorized
+by the documentation rewrite.
 
-- Independent Node 22 TypeScript/ESM service with strict TypeScript checking and Vitest coverage for lifecycle behavior, source parsing, and persisted notification idempotency.
-- Neutral session identity and lifecycle notifications for source-confirmed prompts, turn completion/abort, and later inactivity.
-- Structured console output, atomic persistence of delivered notification keys, and incremental JSONL tailing with partial-line buffering and truncation recovery.
-- File-backed Claude, Codex, Koda, and local-LLM adapters; OpenCode and GitHub Copilot hook inputs.
-- Authenticated version 1 WebSocket connections for paired Android devices, with one active socket per device, nonce ping/pong keepalive, and graceful shutdown.
-- Android Keystore-backed pairing data and a manually started `connectedDevice`
-  foreground service owning the persistent socket and bounded reconnect backoff.
-  The activity binds/observes/controls it; activity stop does not close an
-  already started connection. Pairing never starts it automatically.
-- Test-notification delivery and forwarding of lifecycle notifications to connected authenticated Android devices, alongside console output.
-- Tests covering protocol validation, acknowledgement correlation, timeout/disconnect behavior, duplicate pending IDs, Android payload validation, notification permission/channel outcomes, and Android retry backoff.
-- Separate low-importance ongoing PC connection status notification with Stop;
-  event notifications use a distinct channel/tag and request public lock-screen
-  visibility. Permission and privacy limitations are explained in the app.
-- Twelve new pure JUnit controller tests cover manual/idempotent start, recovery
-  state, Stop/cleanup, stale callbacks, credential failures, authentication
-  failure, and startup failure. These are not physical service/device tests.
-- Three shared workflow skills under `.agents/skills` for context resumption, end-to-end approved task execution, and session handoff; supported by OpenCode and GitHub Copilot CLI and linked from canonical repository instructions.
+| Milestone                             | Current state                                                                                                                                                                                      |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M1 — Core notification infrastructure | Partial: reusable pairing/transport/notification code; QR scanning, revocation, single-pair enforcement, Android foreground service, and Windows background-operation experience remain incomplete |
+| M2 — Supported agent integrations     | Partial: completion-only adapters; incompatible OpenCode V1 example, missing attention categories, filtering, and successive-event correctness                                                     |
+| M3 — Public MVP readiness             | Not release-ready: incomplete M1/M2, no fresh locked-phone/live-agent/public-installation validation                                                                                               |
+| M4/M5 — Expansion                     | Deferred; not active MVP implementation commitments                                                                                                                                                |
 
-## Preserved decisions and constraints (documented)
+## MVP acceptance matrix
 
-- Android delivery is best-effort while the user-started connection service
-  runs, including activity background/lock. There is no offline notification
-  queue or delivery retry; connection recovery permits subsequent events, not
-  replay. Delivery failures do not stop PC source processing. Android power,
-  network, OEM, notification, and lock-screen privacy policy still apply.
-- Approved service type is `connectedDevice`; Start is manual after pairing.
-  `START_NOT_STICKY` means process death/force-stop/reboot require manual Start.
-  No boot startup, wake lock, or battery exemption was added. Stop removes the
-  status notice, not previously posted event notifications.
-- A `submitted` acknowledgement means Android accepted the notification request, not that the operating system displayed it.
-- Existing session history is not replayed at startup. Missing source roots remain disabled until restart.
-- Persisted state contains delivered notification keys, not active-session state; notification-key history has no retention or compaction.
-- Parsers are intentionally slim lifecycle extractors and need representative fixtures as source formats evolve.
-- Console delivery is awaited; a local adapter failure can stop handling the current source event.
-- Docker-Claude collection is not implemented and is not enabled by default.
-- Age of Agents/context-recorder UI concepts, HTTP/web UI, desktop, webhook, Slack/Discord, and email delivery remain excluded.
+**Classification:** "Present; unverified" means code exists, but current MVP
+behavior is not sufficiently verified. "Partial" means a requirement has both
+implemented and missing/conflicting parts. "Missing" means absent in inspected
+source. Runtime claims remain unknown where tests were not performed; no whole
+milestone is marked implemented and verified.
+
+Android file names below refer to `app/android/app/src/main/java/com/aoa/sessionnotifier/`.
+
+| Criteria                               | Classification                        | Evidence and remaining gap                                                                                                                                                                      |
+| -------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M1.1 — Windows operation               | Partial                               | `service/src/index.ts` supports a long-running `npm start` process and shutdown; no documented background start/stop experience; resource footprint not measured                                |
+| M1.2 — QR/approved pairing             | Partial                               | `service/src/pairing/qr.ts` generates QR; `session.ts` requires explicit approval. `MainActivity.kt` only accepts pasted URI; no scanner                                                        |
+| M1.3 — Single-pair trust/revocation    | Partial                               | `service/src/connection/device-connections.ts` authenticates against credentials, but registry accepts multiple devices and has no removal API; no unpair UI or active-access revocation        |
+| M1.4 — Common notification contract    | Partial                               | `service/src/domain.ts` models lifecycle signals and only `work-finished` input. Required attention categories/project-name/description contract is absent                                      |
+| M1.5 — Android companion controls      | Partial                               | Status and notification permission prompting exist in `MainActivity.kt`; foreground-service controls, unpair, explanations, and PC endpoint display are incomplete/missing                      |
+| M1.6 — Locked-phone/service delivery   | Missing; physical behavior unverified | `MainActivity.onStop()` closes the connection; `AndroidManifest.xml` declares no service/FGS permissions. `NotificationPresenter.kt` has no explicit public lock-screen visibility              |
+| M1.7 — Trust/protocol/permission tests | Present; unverified against MVP       | Service pairing/connection/adapter tests and Android protocol/backoff tests exist. No implemented single-pair revocation or FGS behavior to validate                                            |
+| M2.1/M2.2 — Copilot coverage           | Partial                               | `service/src/hooks/normalize.ts` and example configure only `agentStop`/`end_turn`; approval, clarification, and attention-requiring failures are not mapped                                    |
+| M2.1/M2.2 — OpenCode coverage          | Partial                               | Example uses V1 plugin factory; normalizer expects `properties.sessionID`. V2 uses plugin definitions/subscriptions and `data.sessionID`; coverage beyond idle is absent                        |
+| M2.3 — Content and filtering           | Partial/conflicting                   | `service/src/notifications/android.ts` includes source/location and lifecycle text, not the new complete attention content. Defaults include non-MVP sources and start/inactivity notifications |
+| M2.4 — Independent events              | Partial; failure reproduced           | `service/src/lifecycle.ts` emits one completion for a hook-only session and suppresses subsequent turns; Android notification ID hashes also need collision-safe independence review            |
+| M2.4 — Delivery isolation/reconnect    | Partial                               | Android dispatch is isolated from awaited console output, acknowledgements are bounded, and no Android offline retry queue exists; reconnect backoff is activity-owned, not FGS-owned           |
+| M2.5 — Windows integration setup       | Partial                               | Placeholder/example commands are not verified installed integrations; shared absolute inbox paths and PowerShell stdin/path handling need validation                                            |
+| M3.1 — Complete physical experience    | Unknown/not achieved                  | Historical foreground smoke test is narrower than new acceptance; no fresh locked-phone, unpair/revocation, repeated-turn, or service lifecycle result                                          |
+| M3.2 — Installation/troubleshooting    | Partial                               | Source-checkout/pairing/test guides exist; public Windows background operation, firewall/ports, QR scanner, and supported-version instructions are incomplete                                   |
+| M3.3 — Release artifact path           | Partial                               | `.github/workflows/ci.yml` uploads a debug APK artifact; no release workflow or published-release evidence inspected. Automation is not itself required                                         |
+| M3.4 — Reproducible external setup     | Unknown                               | No fresh independent installation evidence; CI uses Ubuntu, not the target Windows platform, and does not run Android unit tests                                                                |
+
+## Delivered foundation and retained non-MVP capabilities
+
+Git history establishes implementation, not fresh acceptance-test success:
+pairing merged in `d54fbd9`; persistent connections in `2a035c6`/`81d5b18`;
+test notifications in `e84270c`/`e261c49`; lifecycle forwarding in
+`866c917`/`e835ea0`. Authenticated v1 transport includes per-connection
+acknowledgement correlation, timeouts/cleanup, and one active socket per device.
+Android stores credentials/endpoint with Keystore-backed encryption, displays
+native notifications, and reconnects with bounded backoff while foregrounded.
+
+The Node 22 TypeScript/ESM service also retains console delivery, atomic
+delivered-key persistence, incremental JSONL transcript tailing with
+partial-line/truncation handling, and Claude/Codex/Koda/local-LLM adapters.
+Transcript history is not replayed at startup; missing transcript roots stay
+disabled until restart. Active lifecycle state is not persisted and key history
+is unbounded. Local hook inbox/idempotency files already exist; an MVP exclusion
+of offline replay does not authorize deleting them. Docker-Claude is absent.
+These retained capabilities and limits do not make them active MVP work.
 
 ## Verification record
 
-The previous status document recorded `npm run build`, `npm test`, and `.\gradlew.bat testDebugUnitTest assembleDebug` as passing for the Phase 2 test-delivery slice, but did not include a verification date. Treat that as a historical, undated report, not as a current verified result.
+### Repository review — 2026-11-02
 
-For the documentation correction on 2026-10-21, application tests were not run because no application code or test behavior changed. `git -c core.whitespace=cr-at-eol diff --check` passed. The OpenCode SQLite wording in `docs/operations.md` now agrees with `docs/sources.md` and `docs/roadmap.md`; Markdown links were reviewed and their targets resolve. Changed paths: `docs/operations.md` and this status file.
+- `git status --short --branch`, `git log -12 --format="%h %ad %s" --date=short --decorate`,
+  `git ls-files`, and `git tag --list`: inspected baseline/history/tracked scope;
+  no local release tags.
+- `npm run build` in `service/`: **passed** (`tsc --noEmit`). Its include list
+  covers `src`, `test`, and `scripts`, not `examples/hooks`; this does not verify
+  installed plugin compatibility or produce a PC release artifact.
+- Read-only inline probes via `node --import tsx --input-type=module -e` with
+  `TSX_DISABLE_CACHE=1`: two completion events produced signal counts `[1, 0]`
+  for both hook adapters. A direct lifecycle probe with distinct timestamps
+  reproduced the same suppression. A V2-shaped idle payload with `data.sessionID`
+  was rejected by the normalizer. These are observed defects, not passing tests.
+- Compared source with current [OpenCode V2 plugin migration](https://opencode.ai/v2/docs/build/plugins/migrate-v1),
+  [V2 API schema](https://opencode.ai/v2/openapi.json), and [Copilot hooks reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-hooks-reference).
+  V1 plugin code is incompatible with V2. Copilot documents native permission
+  prompt/elicitation notifications and error hooks, but their MVP mapping has
+  not been implemented or live-tested here.
+- Full Vitest/Gradle suites, live-agent tests, physical-phone tests, Windows
+  background operation, and a fresh public installation were **not run**.
+  Inspected test code/CI configuration is not a new passing test result.
 
-For the guided-task skill on 2026-10-22, application tests were not run because the change only adds workflow documentation and skill instructions. `git -c core.whitespace=cr-at-eol diff --check` passed. The shared `.agents/skills` discovery location and explicit invocation forms were checked against the OpenCode V2 Skills documentation and GitHub Copilot CLI agent-skills documentation; repository links were reviewed. Changed paths: `.agents/skills/guided-task/SKILL.md`, `AGENTS.md`, `docs/README.md`, and this status file.
+### Historical evidence — not a current test baseline
 
-For the approved global OpenCode-to-Copilot delegation task on 2026-11-05, created `C:\Users\Jocro\.config\opencode\tools\delegate_to_copilot.ts`, its global helper and mocked tests under `C:\Users\Jocro\.config\opencode\lib\` and `tests\`, and `tools\README-delegate_to_copilot.md`. Copilot CLI 1.0.105 was verified with `--model auto`, `--assisted-approval`, and `--output-format json`; the successful read-only smoke test reported routed model `gpt-6-luna`, zero Copilot file changes, exit code 0, and no assisted-approval warning. Observed JSONL event types: `session.auto_mode_resolved`, `session.mcp_servers_loaded`, `session.tools_updated`, `user.message`, `assistant.turn_start`, `model.call_start`, `assistant.reasoning_delta`, `assistant.tool_call_delta`, `model.call_finished`, `assistant.message`, `assistant.reasoning`, `tool.execution_start`, `model.call_final_result`, `tool.execution_complete`, `assistant.turn_end`, `assistant.message_start`, `assistant.message_delta`, `session.background_tasks_changed`, `tool.shell_output`, `tool.execution_partial_result`, `session.usage_checkpoint`, `assistant.idle`, and `result`. `node --experimental-strip-types --test .\tests\delegate_to_copilot.test.ts` from the global OpenCode config directory passed 14/14 mocked tests. Importing the tool through Node's TypeScript stripping also succeeded. `git status --short --branch` showed only the approved status-file update; `git -c core.whitespace=cr-at-eol diff --check` passed. Application tests were not run because no application code changed. Changed paths in this repository: this status file only; global files are listed above. The smoke test is scoped to the installed CLI version and does not prove that assisted approval is a security boundary.
+The ChatGPT handoff transferred by the user on 2026-10-22 reports 35 service
+tests for an earlier connection snapshot, 45 service tests plus Android
+unit/build checks for a later notification snapshot, and a successful user
+foreground physical smoke test on 2026-10-14. Reported checks included pairing,
+permissions, real start/completion-or-abort notifications, unchanged console
+output, disconnect tolerance, and reconnect without unexpected duplicates.
+Original test logs/chats were not independently reproduced. Counts refer to
+different snapshots; they are not added together or presented as current.
+An older status also recorded `npm run build`, `npm test`, and
+`.\gradlew.bat testDebugUnitTest assembleDebug` passing without a run date.
+Neither report establishes locked-phone/FGS delivery or successive hook turns.
 
-**Android foreground-service task, 2026-11-05 (fresh checks):**
+The 2026-10-21/22 documentation/workflow tasks recorded whitespace, path/link,
+skill-discovery, and old phase-criteria checks passing; application tests were
+not applicable. The old 22-criterion preservation check describes the previous
+reconciliation, not this explicitly approved replacement of the phase structure.
 
-- From `app/android`: `.\gradlew.bat testDebugUnitTest assembleDebug` passed
-  twice, including after final code/test edits. XML results show **22 tests,
-  zero failures/errors/skips**, including **12 new controller tests**. Debug
-  APK built at `app/android/app/build/outputs/apk/debug/app-debug.apk`.
-  Process-local environment: `JAVA_HOME=C:\Program Files\Android\Android
-  Studio\jbr` and `ANDROID_HOME=C:\Users\Jocro\AppData\Local\Android\Sdk`.
-  No local SDK configuration was copied from or written to the original worktree.
-- From `service/`: `npm ci --ignore-scripts` installed the locked dependencies;
-  `npm run build` passed; `npm test` passed **49 tests in 9 files**. No PC
-  source, package manifest, or lockfile changes were made.
-- Additional check, `.\gradlew.bat lintDebug`: **failed**, with two existing
-  `NewApi` errors in unchanged `PairingLink.kt:49–50` (`URLDecoder.decode`'s
-  Charset overload requires API 33; min SDK is 26). `git show HEAD:.../PairingLink.kt`
-  confirmed both calls predate this task. Six warnings cover target SDK age,
-  backup configuration, missing application icon, and three now-unused legacy
-  UI strings. No lint baseline, suppression, SDK change, or pairing fix was made.
-- `git diff --check` passed (Git emitted only line-ending conversion warnings).
-- Merged debug manifest confirms min SDK 26, target SDK 35, `INTERNET`,
-  `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`,
-  `FOREGROUND_SERVICE_CONNECTED_DEVICE`, `CHANGE_NETWORK_STATE`, and the
-  non-exported `connectedDevice` service declaration. Requirements were checked
-  against the authoritative Android references linked in `docs/pairing.md`.
-  No Bluetooth, location, NFC/USB, `ACCESS_NETWORK_STATE`, or wake-lock
-  permission was assumed necessary.
-- `adb devices -l` listed **no devices**. Locked-phone delivery, actual
-  activity/service lifecycle behavior, Stop with no further retries, PC restart,
-  Wi-Fi recovery/subsequent delivery, and notification-permission denial remain
-  **pending on hardware**, not passed. No APK was installed or deployed.
+### Documentation rewrite — 2026-11-02
 
-## Assumptions and blockers
+Only `docs/roadmap.md` and this file change. Application tests/builds were not
+rerun for this rewrite because no application/test behavior changes; the
+earlier same-day type-check/probes above remain separately dated review evidence.
 
-- **Resolved documentation discrepancies:** `docs/README.md` and `docs/pairing.md` now describe lifecycle forwarding consistently with the merged implementation. The former status recommendation for an OpenCode SQLite collector was stale; `docs/sources.md` explicitly excludes SQLite polling for this POC, and the status and roadmap now preserve that decision.
-- **Assumption:** the existing delivered-scope and constraint descriptions remain accurate except where explicitly identified above; they are documented claims, not freshly retested behavior.
-- **Pending acceptance:** the physical checklist in `docs/pairing.md` is not
-  verified. Foreground service ownership and unit tests do not prove locked
-  delivery, OS notification display, Doze/OEM behavior, or Wi-Fi recovery.
-- **Existing compatibility blocker:** optional Android lint is not green because
-  the pairing parser calls API-33-only URL decoding on a min-26 app. Lower-API
-  pairing compatibility is not established by JVM tests or successful assembly.
-  This conflict was reported; no scope expansion or compatibility fix was made.
-- **Global delegation limitation:** current GitHub documentation describes Auto using `fusion`, while installed CLI 1.0.105 help advertises `auto`; the real smoke test verified `--model auto` for this installed version only. Copilot assisted approval and CLI path checks are not an OS sandbox; shell commands run with the user's permissions. Direct Git tool rules cannot prevent indirect shell invocation, and configured external MCP servers may expose additional operations.
-- **Known environment warnings:** Gradle reported deprecated features in the
-  first build (future Gradle 10 compatibility). `npm ci --ignore-scripts`
-  reported five audit vulnerabilities (1 moderate, 2 high, 2 critical) and an
-  existing `prebuild-install` deprecation. No audit fixes or dependency upgrades
-  were attempted; those are outside the approved task.
-- **Preserved limitation:** authentication failure terminates the connection
-  instead of retrying. Detailed terminal state is observable while the activity
-  remains bound; it is not persisted across service/process destruction.
+- `git -c core.whitespace=cr-at-eol diff --check`: **passed**.
+- PowerShell Markdown reference validation (`git ls-files '*.md'`,
+  `Get-Content -Raw`, regex extraction, and `Test-Path`): **passed** for all
+  4 local links in the changed documents and 4 inbound references from tracked
+  Markdown, including any heading fragments.
+- PowerShell milestone validation (`Get-Content -Raw` and regex criterion/
+  heading checks): **passed** for 16 unique M1–M3 criteria, a status mapping
+  for every criterion, no old active phase headings, and one next-task section.
+- Manual owner-requirement review: the ten handoff acceptance checks and brief
+  requirements are covered, including unpair/revocation, companion controls,
+  attention-only filtering, full-content lock-screen eligibility, and release
+  artifacts. Target requirements remain separate from implementation evidence.
+- `git diff --name-only`: only `docs/roadmap.md` and this file changed.
 
-## Current phase and next task
+## Blockers and technical decisions
 
-**Phase 0 — Establish reliable project status: complete.**
+1. **Event semantics and compatibility:** identify supported agent versions,
+   native attention signals, project/description fields, Windows ingestion,
+   and event identity. Fixing successive-event suppression and V2 compatibility
+   requires separately approved implementation; automatic permission decisions
+   or recoverable errors must not be mistaken for human attention.
+2. **Android service and presentation:** foreground service is a confirmed
+   requirement, not an unresolved product question. Its appropriate type,
+   permissions, connection ownership, user controls, and locked-phone behavior
+   need implementation and physical validation. OS/user settings can hide
+   content even when the app requests public visibility.
+3. **Pairing/security:** QR scanning, single-pair enforcement, and actual unpair
+   revocation are missing. Current pairing is HTTP and the socket is `ws://`;
+   authentication does not establish LAN confidentiality. Public threat-model
+   and credential/network handling need explicit technical review.
+4. **Operation/distribution:** Windows background start/stop, firewall and Wi-Fi
+   troubleshooting, artifact/install instructions, and a fresh independent
+   setup remain incomplete. No automatic startup, polished installer, or
+   automated release pipeline is required by the agreed MVP.
+5. **Documentation alignment:** other guides still describe the implemented
+   prototype. Their planned Docker/persistence wording and V1 integration
+   examples are not current MVP commitments or verified V2 setup. Updating
+   those guides belongs with the relevant approved work; they were not edited
+   in this two-file task.
 
-**Approved Android milestone — implementation and required automated checks
-complete; physical acceptance pending and additional lint blocked.** The user's explicit foreground-service approval
-superseded the previous Docker collector recommendation for this session; it
-did not authorize collector implementation or other deferred scope.
+## Next proposed task
 
-**Next task (one task only):** Validate the Android foreground-service milestone
-on a paired physical Android 13+ device using `docs/pairing.md`'s checklist.
+**Validate and specify the attention-event mappings for explicitly supported
+Copilot CLI and OpenCode V2 versions.**
 
-- **Acceptance criteria:** record device/OS and relevant power/privacy settings;
-  verify pairing alone does not connect, manual Start and separate status notice,
-  background/locked subsequent event delivery, both Stop paths (including while
-  reconnecting) with no retry after more than 30 seconds, PC restart and Wi-Fi
-  recovery followed by new delivery, permission-denial outcomes, and no automatic
-  start after force-stop/reboot. Distinguish PC acknowledgements from actual
-  visible notifications and privacy-dependent concealment.
-- **Checks:** perform and record the manual checklist, actual PC presentation
-  outcomes and visible device results; rerun automated checks only if code changes
-  are separately approved. Document failures rather than assuming success.
-- **Approval gate:** obtain explicit approval and an available paired test device
-  before beginning; installing the debug APK or running local test services must
-  be explicitly authorized. The current approval covered the implementation commit, merge, and
-  handoff/conflict-resolution commit only; it does not authorize deployment,
-  publishing, or any later commit. Hardware power/privacy restrictions may block reliable delivery.
+- **Scope:** bounded compatibility/event-contract investigation, not feature
+  implementation. Determine native sources for the four attention categories
+  and how Windows hook ingestion should preserve the required content/identity.
+- **Acceptance criteria:** document supported versions, a source-to-notification
+  matrix with representative sanitized payload evidence, project/description
+  fields, explicit unsupported/unknown cases, and repeated-turn/duplicate-input
+  semantics with a test plan. Any missing category remains an MVP gap unless
+  the owner explicitly changes scope.
+- **Checks:** compare official versioned contracts, repository behavior, and
+  available real fixtures; validate candidate Windows invocation/inbox paths
+  where safely available; review the specification for consistency/links and
+  run Git whitespace checks. Report actual results and unavailable checks.
+- **Risks:** installed-version differences, missing native signals, and fixtures
+  that do not distinguish a real human wait from internal activity. Do not
+  invent mappings or silently reduce the agreed attention categories.
+- **Approval gate:** wait for explicit user approval. The product direction and
+  this documentation approval do not authorize application/configuration
+  changes, dependency installation, deployment, release publication, or commits.
 
-## Session handoff
+## Latest handoff and decision provenance
 
-**2026-11-05 — Approved Android foreground service:** implemented only in the
-isolated `pairing` worktree. Added `ConnectionService.kt`,
-`ConnectionServiceController.kt`, and `ConnectionServiceControllerTest.kt`;
-updated `MainActivity.kt`, `PersistentConnection.kt`, `NotificationPresenter.kt`,
-`AndroidManifest.xml`, and `res/values/strings.xml` under
-`app/android/app/src/`. Updated `docs/pairing.md`, `docs/architecture.md`,
-`docs/operations.md`, `docs/README.md`, `docs/roadmap.md`, and this file.
-The service owns the existing transport/reconnect behavior, exposes observed
-status and manual controls, handles credential/authentication failures, and
-removes foreground status on Stop. Event lock-screen visibility and Android 13+
-permission caveats are explicit. Actual automated results and hardware blockers
-are recorded above. No QR scanning, revocation, PC service changes, encryption,
-expanded event fields, boot startup, deployment, or publishing were performed. The user subsequently authorized committing this implementation in
-the isolated worktree and merging it into a feature branch in the original
-worktree; that merge and follow-up status reconciliation are recorded below. The sole next task remains the
-approval-gated physical validation above; the older handoffs below are
-historical, not current next-task proposals.
+**2026-11-02 — Approved MVP documentation restructuring:** replaced the mixed
+phase sequence with the owner's outcome-oriented M1–M3 plan, concrete acceptance
+criteria, and deferred expansion. Incorporated the previous uncommitted
+reconciliation's delivered-history/evidence corrections without changing code.
+Changed paths: `docs/roadmap.md`, `docs/implementation-status.md`. Whitespace,
+Markdown references, criterion/status mapping, requirement coverage, and diff
+scope checks passed as recorded above. No application suites were rerun for
+the rewrite, and no commit or release was made. Remaining blockers and the
+single next task/approval gate are recorded above.
 
-**2026-10-21 — Pull request preparation:** collected the documentation and
-guided-workflow changes on `docs/guided-agent-workflow`, based on `e835ea0`.
-Changed paths are `AGENTS.md`, both repository-local skill files,
-`docs/roadmap.md`, this status file, and the documentation index, operations,
-pairing, and source guides. No application code or generated artifacts are
-included. No repository PR template was found. Application tests are not
-applicable to this documentation-only change; the CRLF-aware Git whitespace
-check passed. The documented application results above remain historical,
-not newly verified. The next task and its approval gate remain as recorded
-above; no collector implementation is authorized by this PR.
-
-**2026-10-22 — Cross-harness task workflow:** added the shared `guided-task`
-skill under `.agents/skills`, supported by both OpenCode and GitHub Copilot CLI,
-and linked it from `AGENTS.md` and the documentation index. It connects the
-existing resume and handoff skills while preserving the task approval gate and
-separate safeguards. Application tests were not applicable; the CRLF-aware Git
-whitespace check passed and skill-discovery documentation was reviewed. The
-Docker-Claude collector remains the single proposed project task; no collector
-implementation is authorized by this workflow change.
-
-**2026-10-22 — Shared skill discovery:** moved `resume-project` and
-`session-handoff` into `.agents/skills` alongside `guided-task`, so OpenCode
-and GitHub Copilot CLI use one shared skill location. Updated all active skill
-references. Application tests were not applicable; discovery and repository
-path checks plus the CRLF-aware Git whitespace check passed. The Docker-Claude
-collector remains the single proposed project task; no collector
-implementation is authorized by this workflow change.
-
-**2026-11-05 - Global Copilot delegation tool:** created the global OpenCode
-custom tool, helper, README, and 14 mocked tests under
-`C:\Users\Jocro\.config\opencode\`. The real read-only repository summary
-smoke test passed with Copilot CLI 1.0.105 (`--model auto`,
-`--assisted-approval`, JSONL output); the selected model was `gpt-6-luna`, and
-the CLI reported no changed files. Node's built-in test runner passed all 14
-tests. Assisted approval is probabilistic, and shell execution is not
-sandboxed; direct Git restrictions can be bypassed indirectly. At that time,
-the proposed task was the Docker-Claude collector; the later-approved Android
-task superseded it. No collector implementation was authorized by the global
-tooling task.
-
-**2026-11-05 - Android feature-branch integration:** committed the approved
-implementation as `dbe7dc1` on `worktree/android-foreground-service` in the
-isolated worktree. Created `feat/android-foreground-service` in the original
-worktree and merged the implementation as `4af11f8`. Preserved the original
-worktree's pre-existing uncommitted global Copilot status update by saving it
-before merge, then reconciling its verified details into this status file
-alongside the Android handoff. The reconciliation commit completes the merge
-handoff. The original user-change stash is retained as a backup. No source,
-configuration, or application code beyond the approved Android task was changed
-by resolving the documentation overlap. Android tests and limitations remain
-as recorded above; no new application checks were run for this documentation
-reconciliation.
+Workflow policy and shared skills were established by `17273ab` and `70d5d2f`;
+the 2026-10-22 reconciliation separated reported history from verified facts.
+The owner-confirmed 2026-11-02 direction resolves the former product-priority,
+foreground-service, device-count, and distribution questions. It supersedes the
+old Docker-Claude-first recommendation and conflicting historical phase labels,
+not the delivered implementation. OpenCode SQLite remains excluded; a supported
+plugin/event API is the direction. No old recommendation authorizes new work.
