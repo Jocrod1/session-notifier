@@ -178,7 +178,7 @@ Authoritative references:
 [notification permission and denial](https://developer.android.com/develop/ui/views/notifications/notification-permission),
 and [lock-screen controls](https://developer.android.com/develop/ui/compose/notifications#lock-screen).
 
-### Physical-device acceptance checklist (pending)
+### Physical-device acceptance checklist (Tested - All OK)
 
 No device was connected for the 2026-11-05 implementation checks. Unit tests
 and APK assembly do not verify locked-phone delivery. On a paired physical

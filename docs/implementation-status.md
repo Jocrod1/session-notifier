@@ -5,14 +5,14 @@ defines the owner-confirmed MVP and acceptance criteria; [AGENTS.md](../AGENTS.m
 defines approval and verification policy. Target requirements are not claims
 about current behavior.
 
-## Repository snapshot — 2026-11-02
+## Repository snapshot — 2026-11-06
 
-- **Branch/HEAD:** `docs/guided-agent-workflow` at `70d5d2f`, above `17273ab`
-  (initial workflow) and `e835ea0` (merged Android lifecycle forwarding).
-- **Working tree at task start:** `git status --short --branch` showed only
-  `docs/roadmap.md` and this file modified by the previous reconciliation.
-  Those edits were reviewed and incorporated into this approved rewrite;
-  the working tree is not claimed to be clean.
+- **Branch/HEAD:** `feat/android-foreground-service` at `56b95a7`, including the
+  Android foreground-service implementation merged from `dbe7dc1`; tracking
+  `origin/feat/android-foreground-service`.
+- **Working tree at review start:** `docs/pairing.md` was the pre-existing
+  user modification and remains untouched; the implementation-status changes
+  in this worktree are from this update.
 - **Review scope:** service/domain/hooks/pairing/transport, Android source and
   manifest, tests, examples, CI, existing documentation, and relevant history.
   This was a targeted MVP review, not a complete implementation/security audit.
@@ -32,9 +32,9 @@ by the documentation rewrite.
 
 | Milestone                             | Current state                                                                                                                                                                                      |
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M1 — Core notification infrastructure | Partial: reusable pairing/transport/notification code; QR scanning, revocation, single-pair enforcement, Android foreground service, and Windows background-operation experience remain incomplete |
+| M1 — Core notification infrastructure| Partial: pairing/transport and the user-started Android foreground service are implemented; QR scanning, revocation/single-pair enforcement, and Windows background operation remain incomplete |
 | M2 — Supported agent integrations     | Partial: completion-only adapters; incompatible OpenCode V1 example, missing attention categories, filtering, and successive-event correctness                                                     |
-| M3 — Public MVP readiness             | Not release-ready: incomplete M1/M2, no fresh locked-phone/live-agent/public-installation validation                                                                                               |
+| M3 — Public MVP readiness             | Not release-ready: M1/M2 gaps and live-agent, release, and independent-installation evidence remain outstanding; Android service checklist was user-reported accepted 2026-11-06 |
 | M4/M5 — Expansion                     | Deferred; not active MVP implementation commitments                                                                                                                                                |
 
 ## MVP acceptance matrix
@@ -53,16 +53,16 @@ Android file names below refer to `app/android/app/src/main/java/com/aoa/session
 | M1.2 — QR/approved pairing             | Partial                               | `service/src/pairing/qr.ts` generates QR; `session.ts` requires explicit approval. `MainActivity.kt` only accepts pasted URI; no scanner                                                        |
 | M1.3 — Single-pair trust/revocation    | Partial                               | `service/src/connection/device-connections.ts` authenticates against credentials, but registry accepts multiple devices and has no removal API; no unpair UI or active-access revocation        |
 | M1.4 — Common notification contract    | Partial                               | `service/src/domain.ts` models lifecycle signals and only `work-finished` input. Required attention categories/project-name/description contract is absent                                      |
-| M1.5 — Android companion controls      | Partial                               | Status and notification permission prompting exist in `MainActivity.kt`; foreground-service controls, unpair, explanations, and PC endpoint display are incomplete/missing                      |
-| M1.6 — Locked-phone/service delivery   | Missing; physical behavior unverified | `MainActivity.onStop()` closes the connection; `AndroidManifest.xml` declares no service/FGS permissions. `NotificationPresenter.kt` has no explicit public lock-screen visibility              |
-| M1.7 — Trust/protocol/permission tests | Present; unverified against MVP       | Service pairing/connection/adapter tests and Android protocol/backoff tests exist. No implemented single-pair revocation or FGS behavior to validate                                            |
+| M1.5 — Android companion controls      | Partial                               | Manual foreground-service Start/Stop, status, and notification-permission explanations are present; unpair/revocation and PC/service information are missing                              |
+| M1.6 — Locked-phone/service delivery   | Implemented; physical checklist user-reported tested and accepted 2026-11-06 | `ConnectionService` owns the connection; `MainActivity.onStop()` unbinds; manifest declares `connectedDevice`. User reports checklist passed; device/OS and per-check evidence were not supplied. |
+| M1.7 — Trust/protocol/permission tests | Present; focused service-state tests pass | 12 new controller tests; Android unit/build and PC regression outcomes are recorded below. No Android instrumentation suite; physical behavior is user-reported, not independently witnessed. |
 | M2.1/M2.2 — Copilot coverage           | Partial                               | `service/src/hooks/normalize.ts` and example configure only `agentStop`/`end_turn`; approval, clarification, and attention-requiring failures are not mapped                                    |
 | M2.1/M2.2 — OpenCode coverage          | Partial                               | Example uses V1 plugin factory; normalizer expects `properties.sessionID`. V2 uses plugin definitions/subscriptions and `data.sessionID`; coverage beyond idle is absent                        |
 | M2.3 — Content and filtering           | Partial/conflicting                   | `service/src/notifications/android.ts` includes source/location and lifecycle text, not the new complete attention content. Defaults include non-MVP sources and start/inactivity notifications |
 | M2.4 — Independent events              | Partial; failure reproduced           | `service/src/lifecycle.ts` emits one completion for a hook-only session and suppresses subsequent turns; Android notification ID hashes also need collision-safe independence review            |
-| M2.4 — Delivery isolation/reconnect    | Partial                               | Android dispatch is isolated from awaited console output, acknowledgements are bounded, and no Android offline retry queue exists; reconnect backoff is activity-owned, not FGS-owned           |
+| M2.4 — Delivery isolation/reconnect    | Partial                               | Android delivery remains best-effort with no offline queue; bounded reconnect is owned by the user-started foreground service, not the activity. Broader event-isolation gaps remain. |
 | M2.5 — Windows integration setup       | Partial                               | Placeholder/example commands are not verified installed integrations; shared absolute inbox paths and PowerShell stdin/path handling need validation                                            |
-| M3.1 — Complete physical experience    | Unknown/not achieved                  | Historical foreground smoke test is narrower than new acceptance; no fresh locked-phone, unpair/revocation, repeated-turn, or service lifecycle result                                          |
+| M3.1 — Complete physical experience    | Partial; Android service checklist user-reported accepted | User reports pairing/start, locked delivery, Stop/retry, PC/Wi-Fi recovery, permission-denial, and no-auto-start checks passed on 2026-11-06. Device/OS, settings, and step-level evidence were not provided; repeated-event and unpair/revocation acceptance remains. |
 | M3.2 — Installation/troubleshooting    | Partial                               | Source-checkout/pairing/test guides exist; public Windows background operation, firewall/ports, QR scanner, and supported-version instructions are incomplete                                   |
 | M3.3 — Release artifact path           | Partial                               | `.github/workflows/ci.yml` uploads a debug APK artifact; no release workflow or published-release evidence inspected. Automation is not itself required                                         |
 | M3.4 — Reproducible external setup     | Unknown                               | No fresh independent installation evidence; CI uses Ubuntu, not the target Windows platform, and does not run Android unit tests                                                                |
@@ -75,7 +75,9 @@ test notifications in `e84270c`/`e261c49`; lifecycle forwarding in
 `866c917`/`e835ea0`. Authenticated v1 transport includes per-connection
 acknowledgement correlation, timeouts/cleanup, and one active socket per device.
 Android stores credentials/endpoint with Keystore-backed encryption, displays
-native notifications, and reconnects with bounded backoff while foregrounded.
+native notifications, and now owns the bounded reconnect loop in a manually
+started `connectedDevice` foreground service. The activity observes/controls it;
+activity stop unbinds but does not close it.
 
 The Node 22 TypeScript/ESM service also retains console delivery, atomic
 delivered-key persistence, incremental JSONL transcript tailing with
@@ -109,6 +111,34 @@ These retained capabilities and limits do not make them active MVP work.
 - Full Vitest/Gradle suites, live-agent tests, physical-phone tests, Windows
   background operation, and a fresh public installation were **not run**.
   Inspected test code/CI configuration is not a new passing test result.
+
+### Android foreground service and physical acceptance - 2026-11-05/06
+
+- The user-started `connectedDevice` service implementation was committed as
+  `dbe7dc1` and merged into this feature branch. `ConnectionService` owns the
+  socket/reconnect loop; activity stop only unbinds. Start remains manual, Stop
+  closes the connection and cancels retries, and the status notice is separate
+  from agent-event notifications.
+- From `app/android`, `.\gradlew.bat testDebugUnitTest assembleDebug` passed
+  after implementation: 22 unit tests, including 12 controller tests, and debug
+  APK assembly succeeded.
+- From `service/`, `npm run build` passed and `npm test` passed 49 tests in 9
+  files. These were regression checks; no PC service source changes were made.
+- Additional `.\gradlew.bat lintDebug` did not pass: two existing API-level
+  errors in unchanged `PairingLink.kt` calls to the Charset `URLDecoder.decode`
+  overload (API 33, app min SDK 26). This was not changed in the Android task.
+- **Physical acceptance - user-reported tested and accepted 2026-11-06:** the
+  user reports completing all six checks in `docs/pairing.md` and says all were
+  good: pairing without auto-start, manual service/status controls, locked-phone
+  event delivery, Stop/no further retries, PC restart and Wi-Fi recovery with
+  subsequent delivery, notification-permission denial, and no automatic start
+  after force-stop/reboot.
+- Device model, Android version, notification/privacy settings, step-level
+  observations, and logs were not supplied. Record this as user-reported
+  acceptance, not independent verification. It establishes the reported FGS
+  checklist outcome, not all M1/MVP acceptance (for example repeated-event
+  semantics, unpair/revocation, supported live-agent mappings, and fresh public
+  installation remain separate gaps).
 
 ### Historical evidence — not a current test baseline
 
@@ -156,11 +186,13 @@ earlier same-day type-check/probes above remain separately dated review evidence
    and event identity. Fixing successive-event suppression and V2 compatibility
    requires separately approved implementation; automatic permission decisions
    or recoverable errors must not be mistaken for human attention.
-2. **Android service and presentation:** foreground service is a confirmed
-   requirement, not an unresolved product question. Its appropriate type,
-   permissions, connection ownership, user controls, and locked-phone behavior
-   need implementation and physical validation. OS/user settings can hide
-   content even when the app requests public visibility.
+2. **Android service and presentation:** the `connectedDevice` foreground
+   service, manual controls, separate status notice, connection ownership, and
+   public lock-screen request are implemented. The user reports the physical
+   service checklist tested and accepted on 2026-11-06; device/OS and detailed
+   evidence were not supplied. This is not independent verification. Remaining
+   M1 gaps include unpair/revocation and broader MVP behavior; OS/user settings
+   can still conceal content.
 3. **Pairing/security:** QR scanning, single-pair enforcement, and actual unpair
    revocation are missing. Current pairing is HTTP and the socket is `ws://`;
    authentication does not establish LAN confidentiality. Public threat-model
@@ -218,3 +250,17 @@ foreground-service, device-count, and distribution questions. It supersedes the
 old Docker-Claude-first recommendation and conflicting historical phase labels,
 not the delivered implementation. OpenCode SQLite remains excluded; a supported
 plugin/event API is the direction. No old recommendation authorizes new work.
+
+
+### Latest handoff - 2026-11-06
+
+Updated the implementation matrix after review of the Android foreground-service
+feature on `feat/android-foreground-service` (`56b95a7`). Corrected stale M1.5,
+M1.6, M1.7, M2.4 reconnect, M3.1, and Android blocker descriptions. Recorded
+the user's physical checklist as tested and accepted by report, with device/OS
+and step-level details explicitly marked unavailable; this does not mark M1 or
+M3 complete. Preserved the existing uncommitted `docs/pairing.md` change. Only
+`docs/implementation-status.md` was edited for this update. Application tests
+were not applicable to this documentation-only change; `git diff --check` was
+run. The sole next task remains the supported Copilot/OpenCode attention-event
+mapping investigation and its existing approval gate above.
