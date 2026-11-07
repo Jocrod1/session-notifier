@@ -19,16 +19,16 @@ it personally and another developer can install and reproduce the setup.
 
 ## Confirmed MVP scope
 
-| Area | Required MVP scope |
-| --- | --- |
-| Platforms | Windows PC and native Android companion application |
-| Agent integrations | GitHub Copilot CLI and OpenCode; explicitly documented supported versions |
-| Connectivity | PC and phone on the same Wi-Fi network; persistent authenticated LAN connection |
-| Pairing | QR reader on Android, explicit PC approval, one PC paired with one Android phone, and unpairing that revokes access |
-| PC operation | Lightweight background service, manually started/stopped, basic troubleshooting logs; no desktop GUI or automatic startup |
-| Android operation | Pair/unpair, connection status, foreground-service start/stop controls, notification permission requests/explanations, and basic PC/service connection information |
-| Delivery | Receive while the phone is locked and the user-started Android foreground service is running |
-| Distribution | GitHub Releases, installable APK, Windows service installation/operation instructions, and manual agent-integration configuration |
+| Area               | Required MVP scope                                                                                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Platforms          | Windows PC and native Android companion application                                                                                                                |
+| Agent integrations | GitHub Copilot CLI and OpenCode; explicitly documented supported versions                                                                                          |
+| Connectivity       | PC and phone on the same Wi-Fi network; persistent authenticated LAN connection                                                                                    |
+| Pairing            | QR reader on Android, explicit PC approval, one PC paired with one Android phone, and unpairing that revokes access                                                |
+| PC operation       | Lightweight background service, manually started/stopped, basic troubleshooting logs; no desktop GUI or automatic startup                                          |
+| Android operation  | Pair/unpair, connection status, foreground-service start/stop controls, notification permission requests/explanations, and basic PC/service connection information |
+| Delivery           | Receive while the phone is locked and the user-started Android foreground service is running                                                                       |
+| Distribution       | GitHub Releases, installable APK, Windows service installation/operation instructions, and manual agent-integration configuration                                  |
 
 The Windows background-operation mechanism is an implementation choice, not a
 requirement for a polished installer or a particular service wrapper.
@@ -37,12 +37,12 @@ requirement for a polished installer or a particular service wrapper.
 
 ### Attention-only events
 
-| Event category | Notify when |
-| --- | --- |
-| Approval required | The agent is actually awaiting human approval, not merely evaluating an automatically allowed permission |
-| Clarification/question | The agent needs a human response |
-| Task completed | The agent has completed its work and is awaiting further instructions |
-| Error/blocked execution | Human attention is required; a recoverable error or automatic retry alone is insufficient |
+| Event category          | Notify when                                                                                              |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| Approval required       | The agent is actually awaiting human approval, not merely evaluating an automatically allowed permission |
+| Clarification/question  | The agent needs a human response                                                                         |
+| Task completed          | The agent has completed its work and is awaiting further instructions                                    |
+| Error/blocked execution | Human attention is required; a recoverable error or automatic retry alone is insufficient                |
 
 Routine work starting or continuing must not notify. Inactivity or an aborted
 turn is not automatically an attention event. Errors have lower conceptual

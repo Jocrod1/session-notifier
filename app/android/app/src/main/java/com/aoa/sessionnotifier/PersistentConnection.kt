@@ -45,7 +45,7 @@ internal class PersistentConnection(
     private val credentials: PairedDeviceCredentials,
     private val onStateChanged: (ConnectionState) -> Unit,
     private val presentNotification: (IncomingNotification) -> NotificationPresentation,
-) {
+) : ManagedConnection {
     private val client = OkHttpClient.Builder()
         .pingInterval(20, TimeUnit.SECONDS)
         .build()
@@ -60,7 +60,7 @@ internal class PersistentConnection(
     private var hasConnected = false
     private var authenticated = false
 
-    fun start() {
+    override fun start() {
         if (credentials.host.isNullOrBlank() || credentials.port == null) {
             onStateChanged(ConnectionState.DISCONNECTED)
             return
@@ -69,16 +69,18 @@ internal class PersistentConnection(
         enqueue { connect() }
     }
 
-    fun stop() {
+    override fun stop() {
         running = false
         enqueue {
             retryTask?.cancel(false)
             retryTask = null
-            socket?.close(1000, "App left foreground")
+            socket?.close(1000, "Connection service stopped")
+            socket?.cancel()
             socket = null
             onStateChanged(ConnectionState.DISCONNECTED)
             executor.shutdown()
             client.dispatcher.cancelAll()
+            client.dispatcher.executorService.shutdown()
             client.connectionPool.evictAll()
         }
     }
@@ -93,7 +95,7 @@ internal class PersistentConnection(
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 enqueue {
                     if (!running) {
-                        webSocket.close(1000, "App left foreground")
+                        webSocket.cancel()
                         return@enqueue
                     }
                     socket = webSocket
@@ -128,9 +130,13 @@ internal class PersistentConnection(
                 }
             }
 
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                webSocket.close(code, reason)
+            }
+
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 enqueue {
-                    if (socket !== webSocket) return@enqueue
+                    if (!running || socket !== webSocket) return@enqueue
                     if (code == 4401 || code == 4404 || code == 4406) {
                         running = false
                         socket = null
@@ -151,6 +157,7 @@ internal class PersistentConnection(
 
     private fun scheduleReconnect(failedSocket: WebSocket) {
         if (!running || socket !== failedSocket || retryScheduled) return
+        failedSocket.cancel()
         socket = null
         authenticated = false
         retryScheduled = true
@@ -165,7 +172,7 @@ internal class PersistentConnection(
         try {
             executor.execute(action)
         } catch (_: RejectedExecutionException) {
-            // Callbacks may arrive after the foreground-owned executor has stopped.
+            // Callbacks may arrive after the service-owned executor has stopped.
         }
     }
 

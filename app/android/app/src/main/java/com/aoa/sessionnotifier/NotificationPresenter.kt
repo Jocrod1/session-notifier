@@ -19,7 +19,7 @@ internal class NotificationPresenter(context: Context) {
                 CHANNEL_ID,
                 applicationContext.getString(R.string.notification_channel_name),
                 NotificationManager.IMPORTANCE_DEFAULT,
-            ),
+            ).apply { lockscreenVisibility = Notification.VISIBILITY_PUBLIC },
         )
     }
 
@@ -43,8 +43,10 @@ internal class NotificationPresenter(context: Context) {
                 .setStyle(Notification.BigTextStyle().bigText(message.body))
                 .setAutoCancel(true)
                 .setShowWhen(false)
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .build()
-            manager.notify(message.notificationId.hashCode(), notification)
+            // A separate tag keeps event IDs from replacing the foreground-service notice.
+            manager.notify(CHANNEL_ID, message.notificationId.hashCode(), notification)
             NotificationPresentation.SUBMITTED
         } catch (error: SecurityException) {
             Log.e(TAG, "Android denied notification submission", error)

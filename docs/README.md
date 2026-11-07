@@ -4,9 +4,10 @@
 Android client. The service observes local AI-agent session transcripts and
 emits notifications when work starts, when a turn finishes or aborts, and
 when a session later becomes inactive. Android pairing and an authenticated,
-foreground-lifecycle WebSocket connection are implemented. Test and lifecycle
+user-started foreground-service WebSocket connection are implemented. Test and lifecycle
 notifications are forwarded to connected Android devices; delivery is
-best-effort and foreground-only.
+best-effort while the connection service runs, including when the activity is
+backgrounded. Physical locked-phone delivery is not yet verified.
 
 It was derived from the input-detection heuristics in the sibling `context-recorder` project, but it does not include any Age of Agents UI, gamification, mission, hero, token, or world model.
 
