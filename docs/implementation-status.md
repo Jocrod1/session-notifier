@@ -5,21 +5,19 @@ defines the owner-confirmed MVP and acceptance criteria; [AGENTS.md](../AGENTS.m
 defines approval and verification policy. Target requirements are not claims
 about current behavior.
 
-## Repository snapshot — 2026-11-07
+## Repository snapshot — 2026-11-08
 
-- **Branch/HEAD:** `main` at `51eefd5`, the merge of the Android
-  foreground-service feature; tracking `origin/main`.
-- **Working tree at review start:** the event-contract pass began on a clean
-  `main` worktree; at the 2026-11-07 correction pass, `docs/implementation-status.md`,
-  `docs/operations.md`, `docs/sources.md`, and the OpenCode example README held
-  that pass's uncommitted edits, which were revised in place (not committed).
-- **Review scope:** bounded Copilot CLI/OpenCode V2 event-contract investigation,
-  relevant service hooks/examples/fixtures, official documentation, release
-  notes and schemas, installed-version and installed-schema checks, and local
-  PowerShell/lifecycle probes. No live agent sessions were captured.
-- **Versions:** installed Copilot CLI 1.0.106 (latest stable 1.0.107) and
-  OpenCode V2 2.2.6. Proposed support range 1.0.106–1.0.107 / 2.2.6 awaits
-  owner approval and live validation; it is not a tested claim.
+- **Branch/HEAD:** `docs/agent-event-contracts` at `62636ed`, tracking
+  `origin/docs/agent-event-contracts`; `main` remains at `51eefd5` locally.
+- **Working tree at interactive follow-up start:** uncommitted changes to this
+  status, `docs/sources.md`, and the four prior capture fixtures; preserved.
+  The follow-up adds 14 sanitized fixtures and documentation, not application code.
+- **Review scope:** isolated live Windows sessions, including user-operated
+  approval/question prompts and limited negative cases. Terminal failures,
+  retries, child sessions, cross-location attribution, and delivery remain open.
+- **Versions:** installed Copilot CLI 1.0.107 and OpenCode V2 2.2.6 on
+  2026-11-08. Proposed support range 1.0.106–1.0.107 / 2.2.6 awaits owner
+  approval and fuller live validation; it is not a tested support claim.
 
 ## Current target and milestone state
 
@@ -34,7 +32,7 @@ by the documentation rewrite.
 | Milestone                             | Current state                                                                                                                                                                                      |
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | M1 — Core notification infrastructure| Partial: pairing/transport and the user-started Android foreground service are implemented; QR scanning, revocation/single-pair enforcement, and Windows background operation remain incomplete |
-| M2 — Supported agent integrations     | Partial: official event contracts reviewed against current stable reference versions in the scoped lines; no new event adapters or live-agent evidence; Windows Copilot stdin example is defective; repeated-event failure remains |
+| M2 — Supported agent integrations     | Partial: contracts reviewed and limited live completion evidence captured; no new event adapters, Windows Copilot stdin example is defective, and repeated-event failure remains |
 | M3 — Public MVP readiness             | Not release-ready: M1/M2 gaps and live-agent, release, and independent-installation evidence remain outstanding; Android service checklist was user-reported accepted 2026-11-06 |
 | M4/M5 — Expansion                     | Deferred; not active MVP implementation commitments                                                                                                                                                |
 
@@ -57,12 +55,12 @@ Android file names below refer to `app/android/app/src/main/java/com/aoa/session
 | M1.5 — Android companion controls      | Partial                               | Manual foreground-service Start/Stop, status, and notification-permission explanations are present; unpair/revocation and PC/service information are missing                              |
 | M1.6 — Locked-phone/service delivery   | Implemented; physical checklist user-reported tested and accepted 2026-11-06 | `ConnectionService` owns the connection; `MainActivity.onStop()` unbinds; manifest declares `connectedDevice`. User reports checklist passed; device/OS and per-check evidence were not supplied. |
 | M1.7 — Trust/protocol/permission tests | Present; focused service-state tests pass | 12 new controller tests; Android unit/build and PC regression outcomes are recorded below. No Android instrumentation suite; physical behavior is user-reported, not independently witnessed. |
-| M2.1/M2.2 — Copilot coverage           | Partial                               | Installed CLI 1.0.106; docs expose `notification` (`permission_prompt` since 1.0.18, prompt-shown-only since 1.0.26; `elicitation_dialog`), `agentStop`, and `errorOccurred`; current adapter only handles `agentStop`; no live payloads |
-| M2.1/M2.2 — OpenCode coverage          | Partial                               | Official V2 2.2.6 schema exposes `permission.asked`, `form.created`, execution success/failure, and `session.idle`; current V1 example is incompatible; semantic mappings and runtime payloads remain unverified |
+| M2.1/M2.2 — Copilot coverage           | Partial                               | CLI 1.0.107 completion, approval and question payloads captured; prompts user-reported; terminal errors unverified; adapter only handles `agentStop` |
+| M2.1/M2.2 — OpenCode coverage          | Partial                               | V2 2.2.6 completion, approval and question payloads captured; execution events lack location; V1 adapter rejects V2 success; terminal errors unverified and selected location fallback is not implemented or validated |
 | M2.3 — Content and filtering           | Partial/conflicting                   | `service/src/notifications/android.ts` includes source/location and lifecycle text, not the new complete attention content. Defaults include non-MVP sources and start/inactivity notifications |
-| M2.4 — Independent events              | Partial; failure reproduced           | Hook-only successive completion remains suppressed in `service/src/lifecycle.ts`. OpenCode event IDs can identify inputs; Copilot documents no event ID, so exact-duplicate semantics remain unresolved. Android notification ID hashes also need collision-safe independence review |
+| M2.4 — Independent events              | Partial; failure reproduced           | Owner chose not to suppress Copilot inputs without a native event ID, accepting possible duplicate notifications; this is not implemented end-to-end. Hook-only successive completion remains suppressed in `service/src/lifecycle.ts`. Android notification ID hashes still need collision-safe independence review |
 | M2.4 — Delivery isolation/reconnect    | Partial                               | Android delivery remains best-effort with no offline queue; bounded reconnect is owned by the user-started foreground service, not the activity. Broader event-isolation gaps remain. |
-| M2.5 — Windows integration setup       | Partial                               | PowerShell check confirms example `Get-Content -Raw` fails without `Path`; direct child Node receives piped stdin, but end-to-end CLI, path quoting, and shared absolute inbox are unverified                    |
+| M2.5 — Windows integration setup       | Partial                               | Captured Copilot completion worked through the existing CLI with an absolute shared inbox from two temporary Windows directories with spaces. Live harness-to-service ingestion, OpenCode V2 integration and attention mappings remain unverified |
 | M3.1 — Complete physical experience    | Partial; Android service checklist user-reported accepted | User reports pairing/start, locked delivery, Stop/retry, PC/Wi-Fi recovery, permission-denial, and no-auto-start checks passed on 2026-11-06. Device/OS, settings, and step-level evidence were not provided; repeated-event and unpair/revocation acceptance remains. |
 | M3.2 — Installation/troubleshooting    | Partial                               | Source-checkout/pairing/test guides exist; public Windows background operation, firewall/ports, QR scanner, and formal supported-version range are incomplete                                  |
 | M3.3 — Release artifact path           | Partial                               | `.github/workflows/ci.yml` uploads a debug APK artifact; no release workflow or published-release evidence inspected. Automation is not itself required                                         |
@@ -261,18 +259,193 @@ earlier same-day type-check/probes above remain separately dated review evidence
   `git -c core.whitespace=cr-at-eol diff --check` result is recorded in the
   task summary. Application tests not applicable (documentation only).
 
+### Limited live event capture — 2026-11-08
+
+- Confirmed clean start on `docs/agent-event-contracts` at `62636ed` with
+  `git status --short --branch` and `git log -5 --oneline --decorate`; `gh issue
+  list --state all --limit 50 --json number,title,state,url` returned `[]`.
+  `copilot --version` reported 1.0.107 and `opencode --version` 2.2.6. `gh
+  release list` for the two upstream repositories showed Copilot 1.0.107 latest
+  stable and OpenCode 2.2.6 latest V2 in the returned entries.
+- In a temporary Git repository with spaces in its path, `copilot --trust-folder
+  --disable-builtin-mcps --no-custom-instructions --no-ask-user -p ... --silent`
+  captured a simple `agentStop`. A separate run with two identical `agentStop`
+  hook registrations produced two identical parsed payloads. A resume attempt
+  without `--trust-folder` skipped repository hooks because the folder was not
+  persistently trusted; `--trust-folder` and `--session-id` cannot be combined.
+  Successive Copilot events in one session therefore remain unverified. A
+  separate allowed-view prompt did not provide enough evidence to classify a
+  permission negative case.
+- `opencode run --standalone --archived --format json ...` and a subsequent
+  `opencode run --standalone --session <id> --format json ...` produced two
+  successful turns with distinct event IDs in the same session. A temporary
+  logging-only V2 plugin captured starts and successes; all observed execution
+  events lacked `location`, contrary to the earlier assumed attribution. A
+  separate `opencode run --standalone --archived --auto --format json ...` read
+  a synthetic file and produced no captured permission event; whether the read
+  would otherwise have prompted is unknown. The archived OpenCode and Copilot
+  test sessions may remain in their normal session histories.
+- The four sanitized JSON payload fixtures and provenance are under
+  `service/test/fixtures/hooks/captured/`; pseudonyms preserve same-session and
+  distinct-ID relationships. No live approval, clarification, recoverable or
+  terminal error, retry, or child/subagent case was captured. Runtime semantics,
+  exact duplicate handling, attribution, and full acceptance remain open.
+- `npm run build` in `service/` passed; `npm test` passed 49 tests in 9 files.
+  `npm run test:hook -- github-copilot` and `npm run test:hook -- opencode`
+  passed with their existing POC fixtures. Attempts to pass the captured fixture
+  through `npm run test:hook` did not forward its `--fixture` argument in this
+  environment and instead ran the default fixture. Directly invoking
+  `node node_modules/tsx/dist/cli.mjs scripts/test-hook.ts github-copilot
+  '--fixture=test/fixtures/hooks/captured/copilot-agent-stop.json'` passed with
+  session `copilot-session`; the analogous `opencode` invocation with
+  `opencode-execution-succeeded-1.json` failed as expected because the V1
+  normalizer requires `session.idle`, `properties.sessionID`, and `directory`.
+- A Node JSON/assertion check passed for all four fixture files, same-session
+  IDs, distinct success IDs, increasing timestamps/sequence numbers, absent
+  OpenCode `location`, and Copilot `end_turn`. A temporary PowerShell probe
+  piped the captured Copilot fixture through the actual Node/tsx ingestion CLI
+  from two temporary working directories with spaces to one absolute inbox path
+  with spaces; both JSONL records were written. This is not a live Copilot
+  hook-to-service integration test.
+- The isolated temporary repository, hooks, plugin, raw capture, probe files,
+  and inbox were removed; `Test-Path` for the temporary root returned `False`.
+  Existing user-level hook/plugin configuration was not changed. No dependency
+  installation, application change, deployment, or commit was made.
+- `git -c core.whitespace=cr-at-eol diff --check` passed with a Git LF/CRLF
+  warning; `Test-Path -LiteralPath 'service/test/fixtures/hooks/captured/README.md'`
+  confirmed the new local link target. `git status --short --branch` showed only
+  this status, `docs/sources.md`, and the new capture fixtures changed.
+
+Live commands ran from the temporary `project with spaces` directory; session
+IDs below are placeholders for the respective synthetic test sessions:
+
+```powershell
+copilot --trust-folder --disable-builtin-mcps --no-custom-instructions --no-ask-user -p 'Respond with exactly capture one. Do not use any tools.' --silent
+copilot --resume <copilot-test-session-id> --disable-builtin-mcps --no-custom-instructions --no-ask-user -p 'Respond with exactly capture two. Do not use any tools.' --silent
+copilot --trust-folder --disable-builtin-mcps --no-custom-instructions --allow-tool view -p 'Use the view tool to read probe.txt, then say done. Do not modify files or use any other tool.' --silent
+copilot --trust-folder --disable-builtin-mcps --no-custom-instructions --no-ask-user -p 'Respond with exactly duplicate probe. Do not use any tools.' --silent
+opencode run --standalone --archived --format json --title 'notifier event capture' 'Respond with exactly capture one. Do not use tools.'
+opencode run --standalone --session <opencode-test-session-id> --format json 'Respond with exactly capture two. Do not use tools.'
+opencode run --standalone --archived --auto --format json --title 'notifier negative case' 'Use the read tool to read probe.txt, then say done. Do not modify files or use other tools.'
+```
+
+### Interactive live-event follow-up — 2026-11-08
+
+- `copilot --version` reported 1.0.107 and `opencode --version` v2.2.6. A
+  temporary Git project with spaces contained logging-only project hooks, a V2
+  event-subscription plugin, and synthetic files. User-level configuration was
+  not edited by this task. Separate smoke runs captured Copilot `agentStop` and
+  OpenCode execution start/success before interactive testing.
+- The user ran `copilot --disable-builtin-mcps --no-custom-instructions
+  --sync-session=off` and `opencode --standalone` from that project. The user
+  reports both clarification forms appeared and were answered, and both later
+  approval prompts appeared and were approved once. Copilot captured
+  `elicitation_dialog` and `permission_prompt`; OpenCode captured `form.created`
+  and matching `form.replied`, and `permission.asked` with matching
+  `permission.replied` (`once`). OpenCode's approval case used an explicit
+  temporary project `shell`-`ask` rule; Copilot's requested a synthetic file edit.
+- The user reports no prompt for each earlier PowerShell-read case. Copilot
+  logged `permissionRequest` but no `permission_prompt` in that session;
+  OpenCode logged no `permission.asked` for its question-session shell read.
+  These are bounded observations, not proof about all automatic decisions.
+  Three Copilot `agentStop` payloads in the same interactive session had
+  distinct timestamps; two are retained. The user reports the sessions closed.
+- A missing-file `view` call in Copilot (`copilot --trust-folder
+  --disable-builtin-mcps --no-custom-instructions --no-ask-user --allow-tool
+  view -p ... --silent`) logged `postToolUseFailure` then `agentStop`. A
+  missing-file `read` in OpenCode (`opencode run --standalone --archived
+  --format json --title 'notifier missing file negative' ...`) logged
+  `session.tool.failed` then `session.execution.succeeded`. Both assistants
+  reported the failure and completed their turns. Terminal errors, automatic
+  retries, and child sessions were not captured.
+- Both interactive OpenCode `session.created` events and associated form or
+  permission events carried matching directories; those matched the plugin
+  context in these sessions. Execution successes did not carry location. A
+  standalone nested-directory run (`opencode run --standalone --archived
+  --format json --title 'notifier nested location' ...`) saw a different plugin
+  context directory, the same project ID, and no success-event location. This
+  does not verify simultaneous multi-location or restart-safe attribution.
+- `node <temporary sanitize.cjs>` created 14 new sanitized fixtures and checked
+  request/form ID and session correlation, ordering and location equality.
+  `node <temporary validate.cjs>` parsed all 18 captured JSON fixtures and
+  checked relationships, observed negative cases, selected privacy markers,
+  and the success event's missing location: **passed**. Free-text fields are
+  redacted and some values intentionally no longer satisfy the native schema;
+  the fixtures are evidence, not proof of adapter compatibility.
+- From `service/`, `npm run build` **passed** and `npm test` **passed** (49
+  tests in 9 files). These existing tests do not exercise the new V2 attention
+  mappings. Android tests and physical delivery were not run because no Android
+  behavior changed. After the user confirmed both sessions were closed,
+  `Remove-Item -LiteralPath <temporary capture root> -Recurse -Force` and
+  `Remove-Item -LiteralPath <temporary setup script> -Force` removed only this
+  task's temporary files; `Test-Path` returned `False` for each. Synthetic
+  Copilot/OpenCode session history may remain in their normal stores.
+- `node <temporary notifier-doc-check-20261108.cjs>` **passed**: six local
+  Markdown links/anchors, one next-task heading, and 18 parseable fixture JSON
+  files. `git -c core.whitespace=cr-at-eol diff --check` **passed** for tracked
+  changes with an LF/CRLF warning; the capture files remain untracked.
+
+### Event identity and attribution decision brief — 2026-11-08
+
+- Reviewed `docs/roadmap.md`, the event-contract evidence and sanitized captured
+  fixtures, plus `service/src/hooks/normalize.ts`, `service/src/domain.ts`, and
+  `service/src/lifecycle.ts`. The Copilot evidence includes duplicate
+  registrations with identical parsed payloads and distinct observed
+  timestamps, but no native event ID or established collision-free identity.
+  OpenCode success fixtures have distinct native event IDs but no location;
+  session-creation/interactive fixtures include location. These observations do
+  not establish restart-safe or simultaneous cross-location correlation.
+- Added a bounded options/tradeoffs brief and pre-implementation test cases to
+  `docs/sources.md`. It does not choose a deduplication policy, attribution
+  source, fallback, display-name mapping, or change adapter/product behavior.
+- Documentation-only task: application tests were not applicable. From the
+  repository root, `git -c core.whitespace=cr-at-eol diff --check` passed with a
+  Git LF/CRLF warning. A PowerShell link/fixture check passed for 4 local
+  Markdown link targets (none had fragments) and all 18 captured JSON fixtures.
+  `git status --short --branch` showed only the already-edited status/source
+  documents and the pre-existing untracked capture-fixture directory. No
+  dependency install, application/configuration change, deployment, release,
+  or commit was made.
+
+### Owner identity/attribution choices — 2026-11-08
+
+- The owner selected the provisional MVP behavior: do not suppress Copilot hook
+  inputs without a native event ID, accepting possible duplicate notifications;
+  for OpenCode, prefer event-level location and use plugin `ctx.location` when
+  the event location is absent, accepting possible multi-location
+  misattribution. These choices do not establish implemented or verified
+  behavior.
+- Updated `docs/sources.md` with the selected options, caveats, and revised test
+  expectations. OpenCode native event-ID duplicate semantics and project-name
+  derivation remain undecided.
+- Documentation-only: application tests were not applicable. From the
+  repository root, `git -c core.whitespace=cr-at-eol diff --check` passed with a
+  Git LF/CRLF warning. A PowerShell check passed for 4 local Markdown link
+  targets, all 18 captured JSON fixtures, and exactly one next-task heading.
+  `git status --short --branch` showed only the already-edited status/source
+  documents and the pre-existing untracked capture-fixture directory. No code,
+  dependency install, deployment, release, or commit was made.
+
 ## Blockers and technical decisions
 
-1. **Event semantics and compatibility:** contracts were checked against
-   installed Copilot CLI 1.0.106 (latest stable 1.0.107) and OpenCode V2 2.2.6
-   on 2026-11-07; none were live-tested. Owner decisions pending: support range
+1. **Event semantics and compatibility:** approval, question and completion
+   payloads were captured using installed Copilot CLI 1.0.107 and OpenCode V2
+   2.2.6 on 2026-11-08; prompts were user-reported. Terminal errors, retries,
+   child sessions and end-to-end integrations remain untested. Observed OpenCode
+   execution events lacked location; creation and interactive events had it.
+   Owner decisions pending: support range
    (proposed 1.0.106–1.0.107 / 2.2.6), project-name source, completion
    description source (fixed text or OpenCode session title), whether inactivity/shutdown interruptions are errors, and
    in-process versus CLI inbox writes for the V2 plugin. Candidate signals,
    missing fields, Copilot's lack of a native event ID, the defective Windows
    stdin example, and successive-event suppression are recorded in
-   `docs/sources.md`. Automatic decisions, recoverable errors, and retries must
-   not be mistaken for human attention.
+   `docs/sources.md`, including the owner-recorded provisional choices to avoid
+   suppressing Copilot inputs without a native ID and to fall back to OpenCode
+   `ctx.location` when an event has no location. These choices are not yet
+   implemented or runtime-validated; multi-location misattribution remains a
+   known risk. OpenCode native event-ID duplicate semantics remain unresolved.
+   Automatic decisions, recoverable errors, and retries must not be mistaken for
+   human attention.
 2. **Android service and presentation:** the `connectedDevice` foreground
    service, manual controls, separate status notice, connection ownership, and
    public lock-screen request are implemented. The user reports the physical
@@ -297,31 +470,31 @@ earlier same-day type-check/probes above remain separately dated review evidence
 
 ## Next proposed task
 
-**Capture live payloads on Windows for Copilot CLI 1.0.106 and OpenCode V2
-2.2.6.**
+**Implement and test the recorded Copilot and OpenCode location policies.**
 
-- **Scope:** with explicit approval for temporary configuration, install a
-  logging-only Copilot hook and OpenCode V2 plugin, exercise all four attention
-  categories plus negative cases (auto-allowed permission, recoverable error,
-  retry, subagent/child completion, routine activity), sanitize captures into
-  labelled `captured` fixtures, then remove the temporary configuration. No
-  application code changes.
-- **Acceptance criteria:** record actual harness versions and representative
-  sanitized payloads; establish whether each candidate mapping fires only when
-  human attention is needed; verify successive distinct same-session events
-  remain distinguishable from duplicate input; record project/description
-  attribution and unresolved cases. Unsupported categories remain explicit MVP
-  gaps.
-- **Checks:** run the documented fixtures and live harness scenarios without
-  installing dependencies or modifying production resources; validate Windows
-  commands from different working directories, including paths with spaces;
-  compare results with `docs/sources.md`; report unavailable scenarios.
-- **Risks:** captures may contain prompts, paths, or transcript references and
-  must be redacted; temporary hook/plugin configuration needs separate explicit
-  approval. Do not install software or treat the proposed range as tested.
-- **Approval gate:** wait for explicit user approval. This proposal authorizes
-  neither dependency installation, application/configuration changes,
-  deployment, release publication, nor commits.
+- **Scope:** in a separately approved implementation, preserve each Copilot
+  hook input as independently eligible for notification without derived-ID
+  suppression; for OpenCode, use event location when present and `ctx.location`
+  only when the event lacks location. Keep passive transcript lifecycle
+  behavior unchanged. Do not decide OpenCode duplicate-ID policy or project
+  display-name derivation as part of this task.
+- **Acceptance criteria:** repeated Copilot inputs with identical parsed
+  payloads and successive same-session hook events are not suppressed; tests
+  show the accepted duplicate-notification tradeoff. OpenCode tests verify
+  event-location precedence and the selected fallback, while documenting that
+  cross-location attribution is not guaranteed. Existing relevant service
+  tests pass.
+- **Checks:** focused hook/lifecycle tests, full service tests, and service build;
+  validate mappings against the captured fixtures and update source/status docs
+  with actual results.
+- **Risks:** current lifecycle logic suppresses hook-only same-session
+  completions; fixing hook independence must not change transcript behavior.
+  `ctx.location` may misattribute events if an instance handles multiple project
+  locations. OpenCode event-ID duplicate semantics and project-name derivation
+  remain separate decisions.
+- **Approval gate:** wait for explicit approval before code changes. No
+  dependency installation, production changes, deployment, release publication,
+  or commits are authorized.
 
 ## Latest handoff and decision provenance
 
@@ -364,3 +537,52 @@ event-related setup guidance was updated. Whitespace, local-link, and example
 JSON checks passed. Application tests were not applicable because this task
 changed documentation only. No code/configuration change, dependency install,
 deployment, or commit was made.
+
+### Prior handoff — 2026-11-08
+
+The approved live-capture task produced partial evidence, not full acceptance.
+Changed `docs/sources.md`, this status, and the sanitized fixtures under
+`service/test/fixtures/hooks/captured/`. Live Copilot completion and duplicate
+registrations and two OpenCode success turns were captured; OpenCode execution
+events did not contain location. The interactive attention scenarios, safe
+failure/retry cases, Copilot successive-turn identity, OpenCode project
+attribution and actual V2 ingestion remain gaps. The temporary capture root was
+removed; normal tool session histories may retain the synthetic sessions.
+Commands and actual results are recorded in the verification section above.
+No application code, user-level configuration, dependency install, deployment
+or commit was made. The follow-up above was subsequently approved and performed.
+
+### Latest handoff — interactive follow-up, 2026-11-08
+
+Captured and sanitized user-assisted Copilot and OpenCode approval/question
+events, a no-prompt case for each, same-session Copilot completions, and
+recovered missing-file tool failures. Changed `docs/sources.md`, this status,
+and the captured-fixtures README; added 14 files under
+`service/test/fixtures/hooks/captured/`. The pre-existing uncommitted capture
+work was preserved. User reports establish whether prompts appeared; they are
+not independently witnessed screen recordings. Verification commands, cleanup,
+and remaining gaps are recorded above. No application code, dependency install,
+deployment or commit was made. The next task and approval gate are above.
+
+### Latest handoff — event identity and attribution brief, 2026-11-08
+
+Added the owner decision brief, bounded failure tradeoffs, and proposed tests to
+`docs/sources.md`; updated this status with the task outcome and next approval-
+gated task. The prior uncommitted status/source edits and captured fixtures were
+preserved. No product choice or adapter implementation was made. Actual
+documentation checks and outcomes, remaining identity/attribution decisions, and
+the single proposed next task are recorded above. No application tests, install,
+deployment, release, or commit was performed.
+
+### Latest handoff — owner identity/attribution choices, 2026-11-08
+
+Recorded the owner's provisional MVP choices in `docs/sources.md`: do not
+suppress Copilot inputs without a native event ID, accepting possible duplicates;
+prefer OpenCode event location when available and otherwise fall back to plugin
+`ctx.location`, accepting multi-location misattribution risk. Updated this status
+and proposed one approval-gated implementation task. These are product choices,
+not evidence that behavior is implemented or validated. The previous working
+tree changes and captured fixtures were preserved. No application tests were
+applicable to this documentation-only update; actual link/fixture, heading-count,
+and whitespace checks are recorded in the verification section. No code change,
+install, deployment, release, or commit was made.

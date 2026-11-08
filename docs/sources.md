@@ -15,10 +15,10 @@
 ## MVP harness event contract reviewed 2026-11-07
 
 The MVP harnesses are **GitHub Copilot CLI** and **OpenCode V2**. The versions
-below are the most recent non-prerelease releases found in the scoped product
-lines during this review, and are reference baselines for follow-up
-compatibility testing—not a claim that the repository has been run against them,
-nor a minimum-version range. OpenCode V1 and V2 are parallel release lines: V2
+below were the most recent non-prerelease releases found in the scoped product
+lines during the 2026-11-07 review, and are reference baselines for follow-up
+compatibility testing, not a minimum-version range. Later limited live runs are
+recorded below. OpenCode V1 and V2 are parallel release lines: V2
 2.2.6 is the latest V2 release found, while GitHub's generic
 `/releases/latest` endpoint still points to V1 1.19.5. The MVP scope here is
 specifically V2:
@@ -45,8 +45,8 @@ contract.
 
 | MVP category | Copilot CLI native signal | OpenCode V2 native signal | Contract conclusion / caution |
 | --- | --- | --- | --- |
-| Approval required | CLI-only `notification` hook with `notification_type: "permission_prompt"`; payload has `sessionId`, `timestamp`, `cwd`, `message`, optional `title` | `permission.asked`; `data` has the pending request `id`, `sessionID`, `action`, `resources`, and optional `message`; `location.directory` identifies the working location | Candidate direct mappings. Do not map Copilot `permissionRequest`: it fires before rules and may lead to auto-allow/auto-deny rather than a human prompt; the 1.0.26 release note states `permission_prompt` fires only when a prompt is shown. OpenCode `permission.asked` represents a pending request; whether plugin `evaluate` hooks suppress it is unverified. Status: partial (no live capture). |
-| Clarification/question | CLI-only `notification` hook with `notification_type: "elicitation_dialog"` (`ask_user`); payload has `sessionId`, `timestamp`, `cwd`, `message`, optional `title` | `form.created`; `data.form` has a form ID, `sessionID`, title, and fields | Candidate mappings. OpenCode docs say the `question` tool "presents an interactive form"; whether non-agent forms (for example integration sign-in) also emit `form.created` is unknown. Status: partial. |
+| Approval required | CLI-only `notification` hook with `notification_type: "permission_prompt"`; payload has `sessionId`, `timestamp`, `cwd`, `message`, optional `title` | `permission.asked`; `data` has the pending request `id`, `sessionID`, `action`, `resources`, and optional `message` | Candidate mappings; each was captured with a user-reported real prompt on 2026-11-08. Do not map Copilot `permissionRequest`: it also fired for an action the user reports did not prompt. OpenCode's captured permission event contained location; whether plugin `evaluate` hooks suppress it remains unverified. Status: partial. |
+| Clarification/question | CLI-only `notification` hook with `notification_type: "elicitation_dialog"` (`ask_user`); payload has `sessionId`, `timestamp`, `cwd`, `message`, optional `title` | `form.created`; `data.form` has a form ID, `sessionID`, title, and fields | Each was captured with a user-reported answered question on 2026-11-08. OpenCode's observed `metadata.kind` was `question`; whether other forms emit `form.created` and how to filter them remains open. Status: partial. |
 | Task completed / awaiting instructions | `agentStop` reports the main agent finished a turn (`stopReason: "end_turn"`); exclude `subagentStop` and `notification` types `agent_idle`/`agent_completed`/`shell_*` | Prefer `session.execution.succeeded`; do not use `session.idle` alone | Copilot fires every turn, including a turn ending with a plain-text question, and provides no description. OpenCode child/subagent sessions must be excluded: installed 2.2.6 exposes `parentID` on `Session.Info` and `session.created`, and `Session.Info.title` can supply a description (runtime behavior unverified). Status: partial. |
 | Error requiring attention | `errorOccurred` with `recoverable: false`; drop `recoverable: true` and `postToolUseFailure` | `session.execution.failed` (the only terminal-failure event in 2.2.6); `session.retry.scheduled`, `session.tool.failed`, `session.step.failed`, `session.compaction.failed`, and `session.execution.interrupted` do not notify (interruption handling is an owner decision) | Copilot: unknown whether `agentStop` also fires after a terminal error (double notification risk) — status unknown. OpenCode: partial. |
 
@@ -55,8 +55,8 @@ contract.
 Copilot hooks fired inside a subagent add `agentId`, `agentType`, and
 `parentAgentId`. A subagent's permission prompt or question still waits for a
 human and should notify. OpenCode V2 `ctx.location` is the plugin instance's
-location, not that of every event it receives; attribute each event by its own
-`location.directory`.
+location, not necessarily that of every event it receives. Event-level
+`location.directory` cannot be assumed: see the live captures below.
 
 Copilot payloads provide `sessionId` and `cwd`, but do not provide a repository
 display name or a unique event ID. The `notification` payload includes the
@@ -64,9 +64,9 @@ human-readable `message` and optional `title`; `agentStop` includes a
 `transcriptPath`, but reading transcripts is not required by this contract.
 Project-name derivation and stable duplicate handling remain unresolved.
 
-OpenCode V2 events provide an event `id`, `created` timestamp, session ID in
-event-specific `data`, and `location.directory`. These support event-level
-deduplication and project-location attribution. They do not generally include
+OpenCode V2 events provide an event `id`, `created` timestamp, and session ID in
+event-specific `data`. These support event-level deduplication; project-location
+attribution requires further validation. They do not generally include
 a project display name or useful completion description: `permission.asked`
 may include `message`, and `form.created` includes a title and fields. A
 directory-to-project-name lookup and completion-description source need
@@ -74,9 +74,8 @@ separate validation; do not silently substitute a full transcript.
 
 The following are sanitized, **schema-derived examples**, not captures from a
 live harness. Copilot fields follow the official CLI hook reference; OpenCode
-fields follow the V2 OpenAPI event schemas. The repository currently has real
-fixtures only for the older Copilot `agentStop` and OpenCode V1 `session.idle`
-POCs.
+fields follow the V2 OpenAPI event schemas. Separate sanitized live captures
+and their limitations are documented below and in the captured-fixtures README.
 
 ```json
 {"sessionId":"copilot-session","timestamp":1793990000000,"cwd":"C:\\work\\sample","hook_event_name":"Notification","notification_type":"permission_prompt","title":"Permission needed","message":"A tool is waiting for approval."}
@@ -143,7 +142,9 @@ AttentionEvent {
 
 Suppress duplicates only on identical `eventId`, never on session ID. The
 Copilot derived ID hashes source, `sessionId`, `agentId` when present, hook
-event, `notification_type`, millisecond `timestamp`, and `message`; successive turns differ by timestamp.
+event, `notification_type`, millisecond `timestamp`, and `message`. This remains
+unvalidated: timestamps alone cannot guarantee uniqueness for same-millisecond
+distinct events, and Copilot duplicate identity remains an open decision.
 
 Open owner decisions: confirm the proposed support range; project-name source
 (Git top-level vs `cwd` basename; OpenCode `ctx.location.project`); completion
@@ -160,8 +161,136 @@ in-process or spawns the CLI.
   four attention categories notify; automatic decisions, retries, routine
   activity, and non-attention failures do not.
 
-No live Copilot CLI or OpenCode V2 session was available in this review, so the
-examples and event mappings remain contract-derived and runtime-unverified.
+No live Copilot CLI or OpenCode V2 session was available in the 2026-11-07
+review, so those examples and most event mappings remain contract-derived and
+runtime-unverified. The limited later evidence is recorded below.
+
+### Limited live captures — 2026-11-08
+
+On Windows, a temporary logging-only project hook captured Copilot CLI 1.0.107
+`agentStop` after a simple successful turn. A V2 2.2.6 plugin subscription
+captured `session.execution.started` and two `session.execution.succeeded`
+events across consecutive turns of the same session. Sanitized payloads and
+provenance are in [`service/test/fixtures/hooks/captured/`](../service/test/fixtures/hooks/captured/README.md).
+The OpenCode events carried distinct IDs and `durable` sequence metadata, but
+**none contained `location`**. The schema-derived examples above include
+`location.directory`, but these plugin captures do not establish its presence;
+project attribution and multi-location behavior remain open. The two observed
+successes do not prove that every success means a human is waiting or that
+child-session completions can be filtered correctly.
+
+In a separate Copilot run, two identical `agentStop` registrations produced
+identical parsed payloads. This establishes one duplicate-input source,
+not safe general duplicate identity or successive Copilot-turn semantics. An
+OpenCode run with `--auto` read a synthetic local file; its capture contained no
+permission events, but no explicit proof was obtained that this read would
+otherwise have required approval. Permission prompts, questions, terminal or
+recoverable errors, retries and child-session behavior were not captured.
+Two distinct OpenCode successes establish distinct IDs for this case only; no
+notification delivery or duplicate suppression was tested with those events.
+The existing OpenCode V1 normalizer rejects the captured V2 success payload.
+
+### Interactive follow-up — 2026-11-08
+
+In isolated temporary Windows project configuration, Copilot CLI 1.0.107 and
+OpenCode V2 2.2.6 each produced a candidate approval event and question event.
+The user reports the approval prompts were shown and approved once, and both
+questions were shown and answered. OpenCode's `permission.replied` carried
+`once`; `form.replied` matched the form ID. The OpenCode shell prompt used an
+explicit temporary `ask` rule. In an earlier shell-read case the user reports
+no prompt: Copilot nevertheless emitted `permissionRequest`, but no captured
+`permission_prompt`; OpenCode emitted no captured permission event. These are
+specific negative cases, not proof of every auto-approval policy.
+
+Three Copilot `agentStop` payloads in the same interactive session had
+different timestamps; two are retained. They show distinct observed turns, not
+collision-free duplicate semantics or independent notification delivery. A
+missing-file tool call produced Copilot `postToolUseFailure` and OpenCode
+`session.tool.failed`; both agents then completed the turn. No terminal error,
+retry, or child-session behavior was established.
+
+The two interactive OpenCode `session.created` events and their permission/form
+events contained `location.directory`; their directories matched each session's
+creation location and the local plugin context. Execution events still lacked
+location. A separate nested-directory standalone run had a different plugin
+context directory but the same project ID and no execution-event location.
+This suggests session-creation correlation as a candidate, not a verified
+multi-location or restart-safe attribution solution. Sanitized payloads and
+provenance are in the [captured fixtures](../service/test/fixtures/hooks/captured/README.md).
+
+### Owner decision brief: event identity and attribution — 2026-11-08
+
+The MVP requires every distinct event to remain independently notifiable. The
+captures establish that Copilot can deliver identical parsed duplicate hook
+payloads from repeated registrations, while some observed same-session turns
+had different timestamps. Copilot's reviewed hook payload has no native event
+ID, so a receiver cannot always distinguish a redelivery from two distinct
+events whose available fields happen to match. A digest makes a chosen
+fingerprint compact; it cannot add identity information or guarantee that two
+distinct events will not share that fingerprint.
+
+| Copilot option | Benefit | Failure/tradeoff |
+| --- | --- | --- |
+| Do not suppress Copilot inputs without a native ID — **selected for MVP** | Cannot coalesce distinct events based on session or timestamp; preserves the MVP independence requirement | Repeated hook registrations can create duplicate notifications, as observed |
+| Deduplicate a deterministic payload fingerprint (for example source, session/agent IDs, hook subtype, timestamp and selected content) | Suppresses identical registrations when the chosen fields match | Can also suppress distinct events with the same selected fields, including same-millisecond events; omitting fields increases false matches, while adding fields can make duplicate copies differ. A cryptographic hash does not remove this ambiguity |
+| Assign an ID when each input is received, without deduplication | Gives each received invocation a distinct internal key | Cannot recognize duplicate registrations or retries; it is an ingestion ID, not native event identity |
+
+**Owner decision recorded 2026-11-08:** for the MVP, do not suppress Copilot
+inputs using a derived fingerprint when there is no native event ID. Preserve
+each received hook input as independently eligible for notification. This
+intentionally accepts possible duplicate notifications from repeated hook
+registrations rather than risking suppression of a distinct event. It does not
+claim that the source payloads have unique identities; revisit if users report
+meaningful duplicate-notification problems. Do not treat timestamp hashing as
+collision-free or as proof of event identity.
+
+OpenCode supplies a native event ID and a session ID, but the captured
+`session.execution.succeeded` events did not include `location`; captured
+`session.created` and interactive events did. The following bounded attribution
+options have different failure modes:
+
+| OpenCode option | Benefit | Failure/tradeoff |
+| --- | --- | --- |
+| Correlate `session.created` by session ID and retain its location/project ID | Uses observed session-specific metadata rather than plugin-global context | Can lack a mapping if creation was missed, predates plugin startup, or process state was lost; simultaneous and restart-safe multi-location behavior is unverified |
+| Look up session metadata when handling an event | Could resolve events even when creation was missed | Must first verify that the supported API returns authoritative location/project data, its availability and latency, and behavior after a session is unavailable |
+| Use an event's own location when present; otherwise fall back to the plugin instance's `ctx.location` — **selected for MVP** | Uses event-specific attribution where available and the simplest context value for events such as execution success that lack location | `ctx.location` is the plugin instance context, not guaranteed to be the session's working directory; it can misattribute events if one instance receives events from other locations |
+| Preserve attribution as unknown when no session mapping is available | Avoids inventing a potentially incorrect project | Does not meet the MVP's correct-project attribution requirement until an authoritative source is established |
+
+**Owner decision recorded 2026-11-08:** prefer an event's own location when it
+is present, and use the plugin instance's `ctx.location` when it is absent. This
+is a provisional MVP fallback for speed and simplicity, not a verified
+per-session attribution guarantee. The owner accepts the possibility of
+misattribution when one plugin instance handles multiple project locations;
+revisit if that case matters to users. Session-creation correlation and metadata
+lookup remain alternatives, not selected approaches. Project display-name
+derivation (for example Git top-level name versus directory basename) remains a
+separate owner choice from directory attribution.
+
+OpenCode event-ID deduplication can use the native event ID, scoped by source;
+tests still need to confirm duplicate delivery of one ID is suppressed while
+different IDs in one session remain independent. This is not a decision about
+session/project attribution.
+
+**Decision tests before implementation:**
+
+- Copilot: two same-session events with different timestamps and repeated
+  inputs with identical parsed payloads must each remain independently
+  deliverable under the selected no-suppression policy; include distinct events
+  sharing a millisecond and document that no source identity is available.
+- OpenCode: duplicate delivery of one native event ID versus distinct IDs in
+  one session; success after `session.created`; success with creation absent,
+  after plugin restart, and from multiple project directories; verify behavior
+  when event location is present versus missing; confirm the selected fallback
+  to `ctx.location` and exercise a multi-location case to make its possible
+  misattribution visible rather than claiming the fallback is authoritative.
+- Both: verify project display-name mapping separately from location, and test
+  that any child-session filtering does not discard an attention event awaiting
+  the human.
+
+These owner choices record behavior preferences only; no adapter implementation
+or event-identity guarantee is established. OpenCode native event-ID duplicate
+semantics, project display-name source, and the proposed supported-version range
+remain separate open decisions.
 
 ### Upstream references
 
