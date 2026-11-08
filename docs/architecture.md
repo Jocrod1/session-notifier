@@ -70,7 +70,7 @@ Only `completed` and `aborted` are emitted by the present runnable collectors. T
 
 ## Normalized Facts
 
-Source parsing intentionally discards presentation data and game-specific detail. The lifecycle core only consumes:
+Source parsing intentionally discards presentation data and detail. The lifecycle core only consumes:
 
 ```ts
 type Fact =

@@ -123,14 +123,15 @@ The reference integrations and their payload examples are in
 `service/examples/hooks/github-copilot/`. Automated inputs are kept separate
 in `service/test/fixtures/hooks/`.
 
-The official harness configuration is documented by each reference folder:
-OpenCode loads plugins from `.opencode/plugins/` or
-`~/.config/opencode/plugins/`; GitHub Copilot CLI loads repository hooks from
-`.github/hooks/*.json` and user hooks from `~/.copilot/hooks/*.json` (or
-`$COPILOT_HOME/hooks`). The OpenCode adapter receives `session.idle` after the
-plugin adds `directory`; the Copilot adapter receives camelCase `agentStop`
-with `sessionId`, `timestamp`, `cwd`, `transcriptPath`, `stopReason`, and
-`stop_hook_active`.
+The reference examples describe the current hook POCs, not complete MVP
+integrations. In particular, the OpenCode example is V1-only and incompatible
+with the MVP's OpenCode V2 target. The current Copilot POC consumes camelCase
+`agentStop` only; its Windows PowerShell command has not been validated and
+currently uses `Get-Content -Raw` without a path. See [Sources and Heuristics](sources.md#mvp-harness-event-contract-reviewed-2026-11-07)
+for the reviewed versions, V2 event stream, candidate attention mappings, and
+validation plan. Copilot CLI repository hooks are in `.github/hooks/*.json`;
+Windows user hooks are in `%USERPROFILE%\.copilot\hooks\` (or
+`$COPILOT_HOME/hooks`).
 
 ## Output
 

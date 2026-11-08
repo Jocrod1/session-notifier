@@ -1,5 +1,11 @@
 # OpenCode hook integration
 
+> **Compatibility warning:** this is a V1 proof of concept only. Its plugin
+> factory and `properties.sessionID` payload do not run/match OpenCode V2. The
+> MVP target is V2's plugin event stream; the reviewed event contract and
+> candidate attention mappings are in [`docs/sources.md`](../../../../docs/sources.md#mvp-harness-event-contract-reviewed-2026-11-07).
+> A V2 adapter has not been implemented or live-tested.
+
 ## Supported hook/event
 
 Session Notifier only supports OpenCode's `session.idle` plugin event
